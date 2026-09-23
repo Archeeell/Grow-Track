@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Alert, Platform, Pressable, StyleSheet, Switch, Text, View } from 'react-native';
 import { Button } from '../components/Button';
 import { Field } from '../components/Field';
@@ -11,9 +11,8 @@ import { confirmAction } from '../utils/confirm';
 import {
   addMinutes,
   formatDateTime,
-  parseDateTimeLocal,
+  minutesToDHM,
   parseNonNegInt,
-  toDateTimeLocalValue,
 } from '../utils/time';
 
 type Props = {
@@ -27,44 +26,73 @@ export function FarmFormScreen({ farmId, onBack }: Props) {
 
   const [name, setName] = useState(existing?.name ?? '');
   const [seedId, setSeedId] = useState<string | null>(existing?.seedId ?? seeds[0]?.id ?? null);
-  const [startedHoursAgo, setStartedHoursAgo] = useState('');
-  const [startedMinutesAgo, setStartedMinutesAgo] = useState('');
-  const [remainHours, setRemainHours] = useState('');
-  const [remainMinutes, setRemainMinutes] = useState('');
-  const [exactReady, setExactReady] = useState(
-    existing?.manualOverride ? toDateTimeLocalValue(existing.readyAt) : ''
-  );
   const [notify, setNotify] = useState(existing?.notificationsEnabled ?? false);
   const [error, setError] = useState<string | null>(null);
+
+  // Grow duration remaining — days / hours / minutes
+  const [remainDays, setRemainDays] = useState('');
+  const [remainHours, setRemainHours] = useState('');
+  const [remainMinutes, setRemainMinutes] = useState('');
+
+  // Track whether the user has manually edited the duration fields
+  const [durationTouched, setDurationTouched] = useState(false);
 
   const selectedSeed = useMemo(
     () => (seedId ? seeds.find((s) => s.id === seedId) : undefined),
     [seedId, seeds]
   );
 
-  const previewReady = useMemo(() => {
-    try {
-      return computeReady({
-        seedGrowMinutes: selectedSeed?.growTimeMinutes,
-        startedHoursAgo,
-        startedMinutesAgo,
-        remainHours,
-        remainMinutes,
-        exactReady,
-        existing,
-      }).readyAt;
-    } catch {
-      return null;
+  // Auto-populate duration fields from selected seed (unless user has overridden them)
+  useEffect(() => {
+    if (durationTouched) return;
+
+    if (selectedSeed) {
+      const dhm = minutesToDHM(selectedSeed.growTimeMinutes);
+      setRemainDays(dhm.days > 0 ? String(dhm.days) : '');
+      setRemainHours(dhm.hours > 0 ? String(dhm.hours) : '');
+      setRemainMinutes(dhm.minutes > 0 ? String(dhm.minutes) : '');
+    } else if (existing) {
+      const remainMs = new Date(existing.readyAt).getTime() - Date.now();
+      if (remainMs > 0) {
+        const dhm = minutesToDHM(Math.round(remainMs / 60_000));
+        setRemainDays(dhm.days > 0 ? String(dhm.days) : '');
+        setRemainHours(dhm.hours > 0 ? String(dhm.hours) : '');
+        setRemainMinutes(dhm.minutes > 0 ? String(dhm.minutes) : '');
+      } else {
+        setRemainDays('');
+        setRemainHours('');
+        setRemainMinutes('');
+      }
+    } else {
+      setRemainDays('');
+      setRemainHours('');
+      setRemainMinutes('');
     }
-  }, [
-    exactReady,
-    existing,
-    remainHours,
-    remainMinutes,
-    selectedSeed,
-    startedHoursAgo,
-    startedMinutesAgo,
-  ]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedSeed]);
+
+  // When user selects a different seed, reset the touch flag so fields re-populate
+  const handleSeedSelect = (id: string | null) => {
+    setSeedId(id);
+    setDurationTouched(false);
+  };
+
+  const handleDayChange = (v: string) => { setRemainDays(v); setDurationTouched(true); };
+  const handleHourChange = (v: string) => { setRemainHours(v); setDurationTouched(true); };
+  const handleMinuteChange = (v: string) => { setRemainMinutes(v); setDurationTouched(true); };
+
+  // Total remaining minutes from the D/H/M fields
+  const totalRemainMinutes = useMemo(() => {
+    const d = parseNonNegInt(remainDays || '0') ?? 0;
+    const h = parseNonNegInt(remainHours || '0') ?? 0;
+    const m = parseNonNegInt(remainMinutes || '0') ?? 0;
+    return d * 24 * 60 + h * 60 + m;
+  }, [remainDays, remainHours, remainMinutes]);
+
+  const previewReady = useMemo(() => {
+    if (totalRemainMinutes < 1) return null;
+    return addMinutes(new Date().toISOString(), totalRemainMinutes);
+  }, [totalRemainMinutes]);
 
   const save = async () => {
     const trimmed = name.trim();
@@ -72,59 +100,55 @@ export function FarmFormScreen({ farmId, onBack }: Props) {
       setError('Give this farm a name so you can spot it later.');
       return;
     }
-    try {
-      const computed = computeReady({
-        seedGrowMinutes: selectedSeed?.growTimeMinutes,
-        startedHoursAgo,
-        startedMinutesAgo,
-        remainHours,
-        remainMinutes,
-        exactReady,
-        existing,
-      });
-      if (!selectedSeed && !computed.manualOverride) {
-        setError('Pick a seed, or enter a remaining time / exact ready time.');
-        return;
-      }
-      let notificationsEnabled = notify;
-      if (notificationsEnabled) {
-        const ok = await ensureNotificationPermission();
-        if (!ok) {
-          notificationsEnabled = false;
-          if (Platform.OS === 'web' && typeof window !== 'undefined') {
-            window.alert(
-              'Farm was saved without alerts. Enable notifications in the browser to get harvest pings.'
-            );
-          } else {
-            Alert.alert(
-              'Notifications blocked',
-              'Farm was saved without alerts. Enable notifications in system settings to get harvest pings.'
-            );
-          }
+    if (totalRemainMinutes < 1) {
+      setError('Enter a remaining grow duration of at least 1 minute.');
+      return;
+    }
+
+    const now = new Date();
+    const readyAt = addMinutes(now.toISOString(), totalRemainMinutes);
+    const plantedAt = selectedSeed
+      ? addMinutes(now.toISOString(), -selectedSeed.growTimeMinutes + totalRemainMinutes)
+      : now.toISOString();
+
+    let notificationsEnabled = notify;
+    if (notificationsEnabled) {
+      const ok = await ensureNotificationPermission();
+      if (!ok) {
+        notificationsEnabled = false;
+        if (Platform.OS === 'web' && typeof window !== 'undefined') {
+          window.alert(
+            'Farm was saved without alerts. Enable notifications in the browser to get harvest pings.'
+          );
+        } else {
+          Alert.alert(
+            'Notifications blocked',
+            'Farm was saved without alerts. Enable notifications in system settings to get harvest pings.'
+          );
         }
       }
-      const payload: Omit<Farm, 'id' | 'createdAt' | 'lastNotifiedReadyAt'> = {
-        name: trimmed,
-        seedId: selectedSeed?.id ?? null,
-        seedName: selectedSeed?.name ?? 'Custom / manual',
-        plantedAt: computed.plantedAt,
-        readyAt: computed.readyAt,
-        manualOverride: computed.manualOverride,
-        notificationsEnabled,
-      };
-      if (existing) {
-        await updateFarm(existing.id, {
-          ...payload,
-          lastNotifiedReadyAt:
-            payload.readyAt !== existing.readyAt ? null : existing.lastNotifiedReadyAt,
-        });
-      } else {
-        await addFarm(payload);
-      }
-      onBack();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Could not save this farm.');
     }
+
+    const payload: Omit<Farm, 'id' | 'createdAt' | 'lastNotifiedReadyAt'> = {
+      name: trimmed,
+      seedId: selectedSeed?.id ?? null,
+      seedName: selectedSeed?.name ?? 'Custom / manual',
+      plantedAt,
+      readyAt,
+      manualOverride: true,
+      notificationsEnabled,
+    };
+
+    if (existing) {
+      await updateFarm(existing.id, {
+        ...payload,
+        lastNotifiedReadyAt:
+          payload.readyAt !== existing.readyAt ? null : existing.lastNotifiedReadyAt,
+      });
+    } else {
+      await addFarm(payload);
+    }
+    onBack();
   };
 
   const remove = () => {
@@ -155,79 +179,55 @@ export function FarmFormScreen({ farmId, onBack }: Props) {
           <Chip
             label="Custom / manual"
             selected={seedId === null}
-            onPress={() => setSeedId(null)}
+            onPress={() => handleSeedSelect(null)}
           />
           {seeds.map((seed) => (
             <Chip
               key={seed.id}
               label={seed.name}
               selected={seedId === seed.id}
-              onPress={() => setSeedId(seed.id)}
+              onPress={() => handleSeedSelect(seed.id)}
             />
           ))}
         </View>
         {selectedSeed ? (
           <Text style={styles.hint}>
-            Grow time {selectedSeed.growTimeMinutes}m
-            {selectedSeed.reharvestIntervalMinutes
-              ? ` · re-harvest ${selectedSeed.reharvestIntervalMinutes}m`
-              : ' · one-time harvest (reset after picking)'}
+            Default grow time: {selectedSeed.growTimeMinutes}m · Adjust below if needed.
           </Text>
         ) : (
-          <Text style={styles.hint}>Enter remaining time or an exact ready date below.</Text>
+          <Text style={styles.hint}>Enter how long is left until harvest.</Text>
         )}
 
-        <Text style={styles.section}>Start time (optional)</Text>
-        <View style={styles.row}>
-          <View style={styles.flex}>
+        <Text style={styles.section}>Time remaining until harvest</Text>
+        <View style={styles.dhmRow}>
+          <View style={styles.dhmField}>
             <Field
-              label="Hours ago"
+              label="Days"
               keyboardType="numeric"
-              value={startedHoursAgo}
-              onChangeText={setStartedHoursAgo}
+              value={remainDays}
+              onChangeText={handleDayChange}
               placeholder="0"
             />
           </View>
-          <View style={styles.flex}>
+          <View style={styles.dhmField}>
             <Field
-              label="Minutes ago"
-              keyboardType="numeric"
-              value={startedMinutesAgo}
-              onChangeText={setStartedMinutesAgo}
-              placeholder="0"
-            />
-          </View>
-        </View>
-
-        <Text style={styles.section}>Manual override (always wins if set)</Text>
-        <View style={styles.row}>
-          <View style={styles.flex}>
-            <Field
-              label="Hours left"
+              label="Hours"
               keyboardType="numeric"
               value={remainHours}
-              onChangeText={setRemainHours}
-              placeholder=""
+              onChangeText={handleHourChange}
+              placeholder="0"
             />
           </View>
-          <View style={styles.flex}>
+          <View style={styles.dhmField}>
             <Field
-              label="Minutes left"
+              label="Minutes"
               keyboardType="numeric"
               value={remainMinutes}
-              onChangeText={setRemainMinutes}
-              placeholder=""
+              onChangeText={handleMinuteChange}
+              placeholder="0"
             />
           </View>
         </View>
-        <Field
-          label="Exact ready date/time"
-          placeholder="YYYY-MM-DD HH:mm"
-          value={exactReady}
-          onChangeText={setExactReady}
-          hint="Example: 2026-09-18 21:30. This takes priority over remaining time and seed grow time."
-          autoCapitalize="none"
-        />
 
         <View style={styles.notifyRow}>
           <View style={styles.flex}>
@@ -243,7 +243,7 @@ export function FarmFormScreen({ farmId, onBack }: Props) {
         </View>
 
         {previewReady ? (
-          <Text style={styles.preview}>Ready at {formatDateTime(previewReady)}</Text>
+          <Text style={styles.preview}>Estimated ready at {formatDateTime(previewReady)}</Text>
         ) : null}
         {error ? <Text style={styles.error}>{error}</Text> : null}
 
@@ -274,67 +274,6 @@ function Chip({
   );
 }
 
-function computeReady(input: {
-  seedGrowMinutes?: number;
-  startedHoursAgo: string;
-  startedMinutesAgo: string;
-  remainHours: string;
-  remainMinutes: string;
-  exactReady: string;
-  existing?: Farm;
-}): { plantedAt: string; readyAt: string; manualOverride: boolean } {
-  const now = new Date();
-  const hasStartOffset =
-    input.startedHoursAgo.trim() !== '' || input.startedMinutesAgo.trim() !== '';
-  const hoursAgo = parseNonNegInt(input.startedHoursAgo) ?? 0;
-  const minsAgo = parseNonNegInt(input.startedMinutesAgo) ?? 0;
-  const offsetMin = hoursAgo * 60 + minsAgo;
-
-  const plantedAt = hasStartOffset
-    ? new Date(now.getTime() - offsetMin * 60_000).toISOString()
-    : input.existing?.plantedAt ?? now.toISOString();
-
-  const exact = parseDateTimeLocal(input.exactReady);
-  if (exact) {
-    return { plantedAt, readyAt: exact.toISOString(), manualOverride: true };
-  }
-
-  const remainH = parseNonNegInt(input.remainHours);
-  const remainM = parseNonNegInt(input.remainMinutes);
-  if (remainH !== null || remainM !== null) {
-    const total = (remainH ?? 0) * 60 + (remainM ?? 0);
-    return {
-      plantedAt,
-      readyAt: addMinutes(now.toISOString(), total),
-      manualOverride: true,
-    };
-  }
-
-  if (input.seedGrowMinutes != null) {
-    if (input.existing && !hasStartOffset) {
-      return {
-        plantedAt,
-        readyAt: addMinutes(plantedAt, input.seedGrowMinutes),
-        manualOverride: false,
-      };
-    }
-    return {
-      plantedAt,
-      readyAt: addMinutes(plantedAt, input.seedGrowMinutes),
-      manualOverride: false,
-    };
-  }
-
-  if (input.existing) {
-    return {
-      plantedAt,
-      readyAt: input.existing.readyAt,
-      manualOverride: input.existing.manualOverride,
-    };
-  }
-
-  throw new Error('Pick a seed or enter a manual time.');
-}
 
 const styles = StyleSheet.create({
   label: {
@@ -377,9 +316,12 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 17,
   },
-  row: {
+  dhmRow: {
     flexDirection: 'row',
     gap: spacing.sm,
+  },
+  dhmField: {
+    flex: 1,
   },
   flex: {
     flex: 1,

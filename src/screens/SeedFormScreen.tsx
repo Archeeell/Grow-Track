@@ -24,11 +24,7 @@ export function SeedFormScreen({ seedId, onBack }: Props) {
   const [growHours, setGrowHours] = useState(initDHM ? String(initDHM.hours) : '');
   const [growMins, setGrowMins] = useState(initDHM ? String(initDHM.minutes) : '');
 
-  const [reharvest, setReharvest] = useState(
-    existing?.reharvestIntervalMinutes != null
-      ? String(existing.reharvestIntervalMinutes)
-      : ''
-  );
+
   const [error, setError] = useState<string | null>(null);
 
   const save = async () => {
@@ -48,11 +44,10 @@ export function SeedFormScreen({ seedId, onBack }: Props) {
       return;
     }
 
-    const reharvestMinutes = parseNonNegInt(reharvest);
     const payload = {
       name: trimmed,
       growTimeMinutes: growMinutes,
-      reharvestIntervalMinutes: reharvestMinutes && reharvestMinutes > 0 ? reharvestMinutes : null,
+      reharvestIntervalMinutes: null,
     };
     if (existing) {
       await updateSeed(existing.id, payload);
@@ -111,14 +106,7 @@ export function SeedFormScreen({ seedId, onBack }: Props) {
           </View>
         </View>
 
-        <Field
-          label="Re-harvest interval (minutes, optional)"
-          value={reharvest}
-          onChangeText={setReharvest}
-          keyboardType="numeric"
-          placeholder="Leave empty for one-time / replant"
-          hint="Most Growtopia trees are harvested once, then replanted. Leave this empty unless the plant regrows on its own."
-        />
+
         {error ? <Text style={styles.error}>{error}</Text> : null}
         <Button label={existing ? 'Save seed' : 'Add seed'} onPress={() => void save()} />
         {existing ? <Button label="Delete seed" variant="danger" onPress={remove} /> : null}
