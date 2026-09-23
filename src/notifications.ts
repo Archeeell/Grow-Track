@@ -1,30 +1,46 @@
-import * as Notifications from 'expo-notifications';
-import { Platform } from 'react-native';
-import type { Farm } from './types';
+import Constants, { ExecutionEnvironment } from "expo-constants";
+import { Platform } from "react-native";
+import type { Farm } from "./types";
 
-try {
-  Notifications.setNotificationHandler({
-    handleNotification: async () => ({
-      shouldShowAlert: true,
-      shouldPlaySound: true,
-      shouldSetBadge: false,
-      shouldShowBanner: true,
-      shouldShowList: true,
-    }),
-  });
-} catch {
-  // Web/unsupported environments can skip the native handler.
+const isExpoGo =
+  Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
+
+function getNotificationsModule() {
+  if (isExpoGo) return null;
+  try {
+    return require("expo-notifications");
+  } catch {
+    return null;
+  }
+}
+
+const Notifications = getNotificationsModule();
+
+if (Notifications) {
+  try {
+    Notifications.setNotificationHandler({
+      handleNotification: async () => ({
+        shouldShowAlert: true,
+        shouldPlaySound: true,
+        shouldSetBadge: false,
+        shouldShowBanner: true,
+        shouldShowList: true,
+      }),
+    });
+  } catch {
+    // Web/unsupported environments can skip the native handler.
+  }
 }
 
 let permissionAsked = false;
 
 export async function ensureNotificationPermission(): Promise<boolean> {
-  if (Platform.OS === 'web') {
-    if (typeof Notification === 'undefined') return false;
-    if (Notification.permission === 'granted') return true;
-    if (Notification.permission === 'denied') return false;
+  if (Platform.OS === "web" || isExpoGo || !Notifications) {
+    if (typeof Notification === "undefined") return false;
+    if (Notification.permission === "granted") return true;
+    if (Notification.permission === "denied") return false;
     const result = await Notification.requestPermission();
-    return result === 'granted';
+    return result === "granted";
   }
 
   try {
@@ -40,13 +56,17 @@ export async function ensureNotificationPermission(): Promise<boolean> {
 }
 
 export async function setupNotificationChannel(): Promise<void> {
-  if (Platform.OS !== 'android') return;
-  await Notifications.setNotificationChannelAsync('farm-ready', {
-    name: 'Farm harvest ready',
-    importance: Notifications.AndroidImportance.HIGH,
-    vibrationPattern: [0, 250, 250, 250],
-    lightColor: '#3DDC84',
-  });
+  if (Platform.OS !== "android" || isExpoGo || !Notifications) return;
+  try {
+    await Notifications.setNotificationChannelAsync("farm-ready", {
+      name: "Farm harvest ready",
+      importance: Notifications.AndroidImportance.HIGH,
+      vibrationPattern: [0, 250, 250, 250],
+      lightColor: "#3DDC84",
+    });
+  } catch {
+    // Ignore in unsupported environments
+  }
 }
 
 function farmId(farm: Farm): string {
@@ -54,6 +74,7 @@ function farmId(farm: Farm): string {
 }
 
 export async function cancelFarmNotification(farm: Farm): Promise<void> {
+  if (!Notifications) return;
   try {
     await Notifications.cancelScheduledNotificationAsync(farmId(farm));
   } catch {
@@ -72,7 +93,7 @@ export async function syncFarmNotification(farm: Farm): Promise<void> {
   const allowed = await ensureNotificationPermission();
   if (!allowed) return;
 
-  if (Platform.OS === 'web') {
+  if (Platform.OS === "web" || isExpoGo || !Notifications) {
     scheduleWebNotification(farm, ready);
     return;
   }
@@ -81,14 +102,14 @@ export async function syncFarmNotification(farm: Farm): Promise<void> {
     await Notifications.scheduleNotificationAsync({
       identifier: farmId(farm),
       content: {
-        title: 'Farm ready to harvest',
+        title: "Farm ready to harvest",
         body: `${farm.name} (${farm.seedName}) is ready.`,
         sound: true,
       },
       trigger: {
         type: Notifications.SchedulableTriggerInputTypes.DATE,
         date: new Date(farm.readyAt),
-        channelId: 'farm-ready',
+        channelId: "farm-ready",
       },
     });
   } catch {
@@ -102,12 +123,19 @@ function scheduleWebNotification(farm: Farm, readyMs: number): void {
   const existing = webTimers.get(farm.id);
   if (existing) clearTimeout(existing);
   const delay = Math.max(0, readyMs - Date.now());
-  const timer = setTimeout(() => {
-    if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
-    new Notification('Farm ready to harvest', {
-      body: `${farm.name} (${farm.seedName}) is ready.`,
-    });
-  }, Math.min(delay, 2_147_000_000));
+  const timer = setTimeout(
+    () => {
+      if (
+        typeof Notification === "undefined" ||
+        Notification.permission !== "granted"
+      )
+        return;
+      new Notification("Farm ready to harvest", {
+        body: `${farm.name} (${farm.seedName}) is ready.`,
+      });
+    },
+    Math.min(delay, 2_147_000_000),
+  );
   webTimers.set(farm.id, timer);
 }
 
@@ -119,21 +147,28 @@ export async function fireDueNotification(farm: Farm): Promise<boolean> {
   const allowed = await ensureNotificationPermission();
   if (!allowed) return false;
 
-  if (Platform.OS === 'web') {
-    if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
-      new Notification('Farm ready to harvest', {
+  if (Platform.OS === "web" || isExpoGo || !Notifications) {
+    if (
+      typeof Notification !== "undefined" &&
+      Notification.permission !== "granted"
+    ) {
+      new Notification("Farm ready to harvest", {
         body: `${farm.name} (${farm.seedName}) is ready.`,
       });
     }
   } else {
-    await Notifications.scheduleNotificationAsync({
-      content: {
-        title: 'Farm ready to harvest',
-        body: `${farm.name} (${farm.seedName}) is ready.`,
-        sound: true,
-      },
-      trigger: null,
-    });
+    try {
+      await Notifications.scheduleNotificationAsync({
+        content: {
+          title: "Farm ready to harvest",
+          body: `${farm.name} (${farm.seedName}) is ready.`,
+          sound: true,
+        },
+        trigger: null,
+      });
+    } catch {
+      // ignore in unsupported environments
+    }
   }
   return true;
 }

@@ -4,6 +4,14 @@ import type { AppData, Farm, Seed } from './types';
 
 const KEY = 'growtopia-farm-tracker:v1';
 
+/** IDs of the current built-in seed set, used to prune removed defaults from storage. */
+const BUILTIN_IDS = new Set(DEFAULT_SEEDS.map((s) => s.id));
+
+/** Remove any stored seed that was built-in but is no longer in DEFAULT_SEEDS. */
+function pruneRemovedBuiltins(seeds: Seed[]): Seed[] {
+  return seeds.filter((s) => !s.builtIn || BUILTIN_IDS.has(s.id));
+}
+
 export async function loadData(): Promise<AppData> {
   try {
     const raw = await AsyncStorage.getItem(KEY);
@@ -11,8 +19,11 @@ export async function loadData(): Promise<AppData> {
       return { seeds: DEFAULT_SEEDS, farms: [] };
     }
     const parsed = JSON.parse(raw) as Partial<AppData>;
+    const stored = Array.isArray(parsed.seeds) && parsed.seeds.length > 0
+      ? pruneRemovedBuiltins(parsed.seeds)
+      : DEFAULT_SEEDS;
     return {
-      seeds: Array.isArray(parsed.seeds) && parsed.seeds.length > 0 ? parsed.seeds : DEFAULT_SEEDS,
+      seeds: stored,
       farms: Array.isArray(parsed.farms) ? parsed.farms : [],
     };
   } catch {
@@ -43,8 +54,10 @@ export function emptyFarmDraft(): Omit<Farm, 'id' | 'createdAt'> {
 }
 
 export function mergeStarterSeeds(existing: Seed[]): Seed[] {
-  const byName = new Map(existing.map((s) => [s.name.toLowerCase(), s]));
-  const merged = [...existing];
+  // First prune any built-ins that are no longer in DEFAULT_SEEDS.
+  const pruned = pruneRemovedBuiltins(existing);
+  const byName = new Map(pruned.map((s) => [s.name.toLowerCase(), s]));
+  const merged = [...pruned];
   for (const seed of DEFAULT_SEEDS) {
     if (!byName.has(seed.name.toLowerCase())) {
       merged.push(seed);
