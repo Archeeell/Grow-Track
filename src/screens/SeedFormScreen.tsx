@@ -1,12 +1,12 @@
 import { useState } from 'react';
-import { StyleSheet, Text } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { Button } from '../components/Button';
 import { Field } from '../components/Field';
 import { Screen, ScreenScroll } from '../components/Screen';
 import { useStore } from '../store';
-import { colors } from '../theme';
+import { colors, spacing } from '../theme';
 import { confirmAction } from '../utils/confirm';
-import { parseNonNegInt } from '../utils/time';
+import { minutesToDHM, parseNonNegInt } from '../utils/time';
 
 type Props = {
   seedId?: string;
@@ -17,9 +17,13 @@ export function SeedFormScreen({ seedId, onBack }: Props) {
   const { seeds, addSeed, updateSeed, deleteSeed } = useStore();
   const existing = seedId ? seeds.find((s) => s.id === seedId) : undefined;
   const [name, setName] = useState(existing?.name ?? '');
-  const [grow, setGrow] = useState(
-    existing ? String(existing.growTimeMinutes) : ''
-  );
+
+  // Decompose existing grow time into days / hours / minutes
+  const initDHM = existing ? minutesToDHM(existing.growTimeMinutes) : null;
+  const [growDays, setGrowDays] = useState(initDHM ? String(initDHM.days) : '');
+  const [growHours, setGrowHours] = useState(initDHM ? String(initDHM.hours) : '');
+  const [growMins, setGrowMins] = useState(initDHM ? String(initDHM.minutes) : '');
+
   const [reharvest, setReharvest] = useState(
     existing?.reharvestIntervalMinutes != null
       ? String(existing.reharvestIntervalMinutes)
@@ -29,15 +33,21 @@ export function SeedFormScreen({ seedId, onBack }: Props) {
 
   const save = async () => {
     const trimmed = name.trim();
-    const growMinutes = parseNonNegInt(grow);
     if (!trimmed) {
       setError('Seed name is required.');
       return;
     }
-    if (growMinutes === null || growMinutes < 1) {
-      setError('Grow time must be at least 1 minute.');
+
+    const days = parseNonNegInt(growDays || '0') ?? 0;
+    const hours = parseNonNegInt(growHours || '0') ?? 0;
+    const mins = parseNonNegInt(growMins || '0') ?? 0;
+    const growMinutes = days * 24 * 60 + hours * 60 + mins;
+
+    if (growMinutes < 1) {
+      setError('Grow time must be at least 1 minute total.');
       return;
     }
+
     const reharvestMinutes = parseNonNegInt(reharvest);
     const payload = {
       name: trimmed,
@@ -69,13 +79,38 @@ export function SeedFormScreen({ seedId, onBack }: Props) {
     <Screen title={existing ? 'Edit seed' : 'Add seed'} onBack={onBack}>
       <ScreenScroll>
         <Field label="Seed name" value={name} onChangeText={setName} placeholder="Cactus" />
-        <Field
-          label="Grow time (minutes to first harvest)"
-          value={grow}
-          onChangeText={setGrow}
-          keyboardType="numeric"
-          placeholder="90"
-        />
+
+        <Text style={styles.groupLabel}>Grow time (to first harvest)</Text>
+        <View style={styles.dhmRow}>
+          <View style={styles.dhmField}>
+            <Field
+              label="Days"
+              value={growDays}
+              onChangeText={setGrowDays}
+              keyboardType="numeric"
+              placeholder="0"
+            />
+          </View>
+          <View style={styles.dhmField}>
+            <Field
+              label="Hours"
+              value={growHours}
+              onChangeText={setGrowHours}
+              keyboardType="numeric"
+              placeholder="0"
+            />
+          </View>
+          <View style={styles.dhmField}>
+            <Field
+              label="Minutes"
+              value={growMins}
+              onChangeText={setGrowMins}
+              keyboardType="numeric"
+              placeholder="0"
+            />
+          </View>
+        </View>
+
         <Field
           label="Re-harvest interval (minutes, optional)"
           value={reharvest}
@@ -95,5 +130,17 @@ export function SeedFormScreen({ seedId, onBack }: Props) {
 const styles = StyleSheet.create({
   error: {
     color: colors.danger,
+  },
+  groupLabel: {
+    color: colors.muted,
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  dhmRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+  dhmField: {
+    flex: 1,
   },
 });

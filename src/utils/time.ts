@@ -93,3 +93,11 @@ export function parseNonNegInt(value: string): number | null {
 export function formatGrowTime(minutes: number): string {
   return formatDuration(minutes * 60_000);
 }
+
+/** Decompose total minutes into { days, hours, minutes } components. */
+export function minutesToDHM(total: number): { days: number; hours: number; minutes: number } {
+  const days = Math.floor(total / (60 * 24));
+  const hours = Math.floor((total % (60 * 24)) / 60);
+  const minutes = total % 60;
+  return { days, hours, minutes };
+}
