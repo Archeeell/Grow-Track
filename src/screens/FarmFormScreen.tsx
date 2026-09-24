@@ -1,19 +1,27 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Alert, Platform, Pressable, StyleSheet, Switch, Text, View } from 'react-native';
-import { Button } from '../components/Button';
-import { Field } from '../components/Field';
-import { Screen, ScreenScroll } from '../components/Screen';
-import { useStore } from '../store';
-import { colors, radius, spacing } from '../theme';
-import type { Farm } from '../types';
-import { ensureNotificationPermission } from '../notifications';
-import { confirmAction } from '../utils/confirm';
+import { useEffect, useMemo, useState } from "react";
+import {
+  Alert,
+  Platform,
+  Pressable,
+  StyleSheet,
+  Switch,
+  Text,
+  View,
+} from "react-native";
+import { Button } from "../components/Button";
+import { Field } from "../components/Field";
+import { Screen, ScreenScroll } from "../components/Screen";
+import { useStore } from "../store";
+import { colors, radius, spacing } from "../theme";
+import type { Farm } from "../types";
+import { ensureNotificationPermission } from "../notifications";
+import { confirmAction } from "../utils/confirm";
 import {
   addMinutes,
   formatDateTime,
   minutesToDHM,
   parseNonNegInt,
-} from '../utils/time';
+} from "../utils/time";
 
 type Props = {
   farmId?: string;
@@ -24,22 +32,24 @@ export function FarmFormScreen({ farmId, onBack }: Props) {
   const { farms, seeds, addFarm, updateFarm, deleteFarm } = useStore();
   const existing = farmId ? farms.find((f) => f.id === farmId) : undefined;
 
-  const [name, setName] = useState(existing?.name ?? '');
-  const [seedId, setSeedId] = useState<string | null>(existing?.seedId ?? seeds[0]?.id ?? null);
+  const [name, setName] = useState(existing?.name ?? "");
+  const [seedId, setSeedId] = useState<string | null>(
+    existing?.seedId ?? seeds[0]?.id ?? null,
+  );
   const [notify, setNotify] = useState(existing?.notificationsEnabled ?? false);
   const [error, setError] = useState<string | null>(null);
 
   // Grow duration remaining — days / hours / minutes
-  const [remainDays, setRemainDays] = useState('');
-  const [remainHours, setRemainHours] = useState('');
-  const [remainMinutes, setRemainMinutes] = useState('');
+  const [remainDays, setRemainDays] = useState("");
+  const [remainHours, setRemainHours] = useState("");
+  const [remainMinutes, setRemainMinutes] = useState("");
 
   // Track whether the user has manually edited the duration fields
   const [durationTouched, setDurationTouched] = useState(false);
 
   const selectedSeed = useMemo(
     () => (seedId ? seeds.find((s) => s.id === seedId) : undefined),
-    [seedId, seeds]
+    [seedId, seeds],
   );
 
   // Auto-populate duration fields from selected seed (unless user has overridden them)
@@ -48,27 +58,27 @@ export function FarmFormScreen({ farmId, onBack }: Props) {
 
     if (selectedSeed) {
       const dhm = minutesToDHM(selectedSeed.growTimeMinutes);
-      setRemainDays(dhm.days > 0 ? String(dhm.days) : '');
-      setRemainHours(dhm.hours > 0 ? String(dhm.hours) : '');
-      setRemainMinutes(dhm.minutes > 0 ? String(dhm.minutes) : '');
+      setRemainDays(dhm.days > 0 ? String(dhm.days) : "");
+      setRemainHours(dhm.hours > 0 ? String(dhm.hours) : "");
+      setRemainMinutes(dhm.minutes > 0 ? String(dhm.minutes) : "");
     } else if (existing) {
       const remainMs = new Date(existing.readyAt).getTime() - Date.now();
       if (remainMs > 0) {
         const dhm = minutesToDHM(Math.round(remainMs / 60_000));
-        setRemainDays(dhm.days > 0 ? String(dhm.days) : '');
-        setRemainHours(dhm.hours > 0 ? String(dhm.hours) : '');
-        setRemainMinutes(dhm.minutes > 0 ? String(dhm.minutes) : '');
+        setRemainDays(dhm.days > 0 ? String(dhm.days) : "");
+        setRemainHours(dhm.hours > 0 ? String(dhm.hours) : "");
+        setRemainMinutes(dhm.minutes > 0 ? String(dhm.minutes) : "");
       } else {
-        setRemainDays('');
-        setRemainHours('');
-        setRemainMinutes('');
+        setRemainDays("");
+        setRemainHours("");
+        setRemainMinutes("");
       }
     } else {
-      setRemainDays('');
-      setRemainHours('');
-      setRemainMinutes('');
+      setRemainDays("");
+      setRemainHours("");
+      setRemainMinutes("");
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedSeed]);
 
   // When user selects a different seed, reset the touch flag so fields re-populate
@@ -77,15 +87,24 @@ export function FarmFormScreen({ farmId, onBack }: Props) {
     setDurationTouched(false);
   };
 
-  const handleDayChange = (v: string) => { setRemainDays(v); setDurationTouched(true); };
-  const handleHourChange = (v: string) => { setRemainHours(v); setDurationTouched(true); };
-  const handleMinuteChange = (v: string) => { setRemainMinutes(v); setDurationTouched(true); };
+  const handleDayChange = (v: string) => {
+    setRemainDays(v);
+    setDurationTouched(true);
+  };
+  const handleHourChange = (v: string) => {
+    setRemainHours(v);
+    setDurationTouched(true);
+  };
+  const handleMinuteChange = (v: string) => {
+    setRemainMinutes(v);
+    setDurationTouched(true);
+  };
 
   // Total remaining minutes from the D/H/M fields
   const totalRemainMinutes = useMemo(() => {
-    const d = parseNonNegInt(remainDays || '0') ?? 0;
-    const h = parseNonNegInt(remainHours || '0') ?? 0;
-    const m = parseNonNegInt(remainMinutes || '0') ?? 0;
+    const d = parseNonNegInt(remainDays || "0") ?? 0;
+    const h = parseNonNegInt(remainHours || "0") ?? 0;
+    const m = parseNonNegInt(remainMinutes || "0") ?? 0;
     return d * 24 * 60 + h * 60 + m;
   }, [remainDays, remainHours, remainMinutes]);
 
@@ -97,18 +116,21 @@ export function FarmFormScreen({ farmId, onBack }: Props) {
   const save = async () => {
     const trimmed = name.trim();
     if (!trimmed) {
-      setError('Give this farm a name so you can spot it later.');
+      setError("Give this farm a name so you can spot it later.");
       return;
     }
     if (totalRemainMinutes < 1) {
-      setError('Enter a remaining grow duration of at least 1 minute.');
+      setError("Enter a remaining grow duration of at least 1 minute.");
       return;
     }
 
     const now = new Date();
     const readyAt = addMinutes(now.toISOString(), totalRemainMinutes);
     const plantedAt = selectedSeed
-      ? addMinutes(now.toISOString(), -selectedSeed.growTimeMinutes + totalRemainMinutes)
+      ? addMinutes(
+          now.toISOString(),
+          -selectedSeed.growTimeMinutes + totalRemainMinutes,
+        )
       : now.toISOString();
 
     let notificationsEnabled = notify;
@@ -116,23 +138,23 @@ export function FarmFormScreen({ farmId, onBack }: Props) {
       const ok = await ensureNotificationPermission();
       if (!ok) {
         notificationsEnabled = false;
-        if (Platform.OS === 'web' && typeof window !== 'undefined') {
+        if (Platform.OS === "web" && typeof window !== "undefined") {
           window.alert(
-            'Farm was saved without alerts. Enable notifications in the browser to get harvest pings.'
+            "Farm was saved without alerts. Enable notifications in the browser to get harvest pings.",
           );
         } else {
           Alert.alert(
-            'Notifications blocked',
-            'Farm was saved without alerts. Enable notifications in system settings to get harvest pings.'
+            "Notifications blocked",
+            "Farm was saved without alerts. Enable notifications in system settings to get harvest pings.",
           );
         }
       }
     }
 
-    const payload: Omit<Farm, 'id' | 'createdAt' | 'lastNotifiedReadyAt'> = {
+    const payload: Omit<Farm, "id" | "createdAt" | "lastNotifiedReadyAt"> = {
       name: trimmed,
       seedId: selectedSeed?.id ?? null,
-      seedName: selectedSeed?.name ?? 'Custom / manual',
+      seedName: selectedSeed?.name ?? "Custom / manual",
       plantedAt,
       readyAt,
       manualOverride: true,
@@ -143,7 +165,9 @@ export function FarmFormScreen({ farmId, onBack }: Props) {
       await updateFarm(existing.id, {
         ...payload,
         lastNotifiedReadyAt:
-          payload.readyAt !== existing.readyAt ? null : existing.lastNotifiedReadyAt,
+          payload.readyAt !== existing.readyAt
+            ? null
+            : existing.lastNotifiedReadyAt,
       });
     } else {
       await addFarm(payload);
@@ -154,18 +178,18 @@ export function FarmFormScreen({ farmId, onBack }: Props) {
   const remove = () => {
     if (!existing) return;
     confirmAction(
-      'Delete farm?',
+      "Delete farm?",
       `Remove "${existing.name}" from the tracker.`,
-      'Delete',
+      "Delete",
       () => {
         void deleteFarm(existing.id).then(onBack);
       },
-      true
+      true,
     );
   };
 
   return (
-    <Screen title={existing ? 'Edit farm' : 'Add farm'} onBack={onBack}>
+    <Screen title={existing ? "Edit farm" : "Add farm"} onBack={onBack}>
       <ScreenScroll>
         <Field
           label="Farm name"
@@ -192,7 +216,8 @@ export function FarmFormScreen({ farmId, onBack }: Props) {
         </View>
         {selectedSeed ? (
           <Text style={styles.hint}>
-            Default grow time: {selectedSeed.growTimeMinutes}m · Adjust below if needed.
+            Default grow time: {selectedSeed.growTimeMinutes}m · Adjust below if
+            needed.
           </Text>
         ) : (
           <Text style={styles.hint}>Enter how long is left until harvest.</Text>
@@ -232,7 +257,9 @@ export function FarmFormScreen({ farmId, onBack }: Props) {
         <View style={styles.notifyRow}>
           <View style={styles.flex}>
             <Text style={styles.notifyTitle}>Harvest notification</Text>
-            <Text style={styles.hint}>Off by default. Works in the background on iOS/Android.</Text>
+            <Text style={styles.hint}>
+              Off by default. Works in the background on iOS/Android.
+            </Text>
           </View>
           <Switch
             value={notify}
@@ -243,12 +270,19 @@ export function FarmFormScreen({ farmId, onBack }: Props) {
         </View>
 
         {previewReady ? (
-          <Text style={styles.preview}>Estimated ready at {formatDateTime(previewReady)}</Text>
+          <Text style={styles.preview}>
+            Estimated ready at {formatDateTime(previewReady)}
+          </Text>
         ) : null}
         {error ? <Text style={styles.error}>{error}</Text> : null}
 
-        <Button label={existing ? 'Save changes' : 'Add farm'} onPress={() => void save()} />
-        {existing ? <Button label="Delete farm" variant="danger" onPress={remove} /> : null}
+        <Button
+          label={existing ? "Save changes" : "Add farm"}
+          onPress={() => void save()}
+        />
+        {existing ? (
+          <Button label="Delete farm" variant="danger" onPress={remove} />
+        ) : null}
       </ScreenScroll>
     </Screen>
   );
@@ -269,26 +303,27 @@ function Chip({
       onPress={onPress}
       style={[styles.chip, selected && styles.chipOn]}
     >
-      <Text style={[styles.chipText, selected && styles.chipTextOn]}>{label}</Text>
+      <Text style={[styles.chipText, selected && styles.chipTextOn]}>
+        {label}
+      </Text>
     </Pressable>
   );
 }
-
 
 const styles = StyleSheet.create({
   label: {
     color: colors.muted,
     fontSize: 13,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   section: {
     color: colors.text,
-    fontWeight: '700',
+    fontWeight: "700",
     marginTop: spacing.sm,
   },
   chips: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexDirection: "row",
+    flexWrap: "wrap",
     gap: 8,
   },
   chip: {
@@ -306,7 +341,7 @@ const styles = StyleSheet.create({
   chipText: {
     color: colors.text,
     fontSize: 13,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   chipTextOn: {
     color: colors.accent,
@@ -317,7 +352,7 @@ const styles = StyleSheet.create({
     lineHeight: 17,
   },
   dhmRow: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: spacing.sm,
   },
   dhmField: {
@@ -327,8 +362,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   notifyRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: spacing.md,
     backgroundColor: colors.surface,
     borderRadius: radius.md,
@@ -338,11 +373,11 @@ const styles = StyleSheet.create({
   },
   notifyTitle: {
     color: colors.text,
-    fontWeight: '700',
+    fontWeight: "700",
   },
   preview: {
     color: colors.accent,
-    fontWeight: '700',
+    fontWeight: "700",
   },
   error: {
     color: colors.danger,

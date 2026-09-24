@@ -6,10 +6,19 @@ const KEY = 'growtopia-farm-tracker:v1';
 
 /** IDs of the current built-in seed set, used to prune removed defaults from storage. */
 const BUILTIN_IDS = new Set(DEFAULT_SEEDS.map((s) => s.id));
+const DEFAULT_SEEDS_BY_ID = new Map(DEFAULT_SEEDS.map((s) => [s.id, s]));
 
 /** Remove any stored seed that was built-in but is no longer in DEFAULT_SEEDS. */
 function pruneRemovedBuiltins(seeds: Seed[]): Seed[] {
   return seeds.filter((s) => !s.builtIn || BUILTIN_IDS.has(s.id));
+}
+
+function updateBuiltInGrowTimes(seeds: Seed[]): Seed[] {
+  return seeds.map((seed) => {
+    if (!seed.builtIn) return seed;
+    const defaultSeed = DEFAULT_SEEDS_BY_ID.get(seed.id);
+    return defaultSeed ? { ...seed, growTimeMinutes: defaultSeed.growTimeMinutes } : seed;
+  });
 }
 
 export async function loadData(): Promise<AppData> {
@@ -23,7 +32,7 @@ export async function loadData(): Promise<AppData> {
       ? pruneRemovedBuiltins(parsed.seeds)
       : DEFAULT_SEEDS;
     return {
-      seeds: stored,
+      seeds: updateBuiltInGrowTimes(stored),
       farms: Array.isArray(parsed.farms) ? parsed.farms : [],
     };
   } catch {
@@ -55,7 +64,7 @@ export function emptyFarmDraft(): Omit<Farm, 'id' | 'createdAt'> {
 
 export function mergeStarterSeeds(existing: Seed[]): Seed[] {
   // First prune any built-ins that are no longer in DEFAULT_SEEDS.
-  const pruned = pruneRemovedBuiltins(existing);
+  const pruned = updateBuiltInGrowTimes(pruneRemovedBuiltins(existing));
   const byName = new Map(pruned.map((s) => [s.name.toLowerCase(), s]));
   const merged = [...pruned];
   for (const seed of DEFAULT_SEEDS) {
