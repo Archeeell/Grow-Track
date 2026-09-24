@@ -151,7 +151,7 @@ export function FarmFormScreen({ farmId, onBack }: Props) {
       }
     }
 
-    const payload: Omit<Farm, "id" | "createdAt" | "lastNotifiedReadyAt"> = {
+    const payload: Omit<Farm, "id" | "createdAt" | "lastNotifiedReadyAt" | "harvestedAt"> = {
       name: trimmed,
       seedId: selectedSeed?.id ?? null,
       seedName: selectedSeed?.name ?? "Custom / manual",
@@ -164,6 +164,7 @@ export function FarmFormScreen({ farmId, onBack }: Props) {
     if (existing) {
       await updateFarm(existing.id, {
         ...payload,
+        harvestedAt: null,
         lastNotifiedReadyAt:
           payload.readyAt !== existing.readyAt
             ? null

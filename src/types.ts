@@ -1,4 +1,4 @@
-export type HarvestStatus = 'growing' | 'ready' | 'overdue';
+export type HarvestStatus = "growing" | "ready" | "overdue" | "harvested";
 
 export type Seed = {
   id: string;
@@ -21,6 +21,8 @@ export type Farm = {
   notificationsEnabled: boolean;
   lastNotifiedReadyAt: string | null;
   createdAt: string;
+  /** Set when the user taps "Harvested" — clears when replanted. */
+  harvestedAt: string | null;
 };
 
 export type AppData = {
@@ -29,7 +31,7 @@ export type AppData = {
 };
 
 export type Route =
-  | { name: 'dashboard' }
-  | { name: 'farm-form'; farmId?: string }
-  | { name: 'seeds' }
-  | { name: 'seed-form'; seedId?: string };
+  | { name: "dashboard" }
+  | { name: "farm-form"; farmId?: string }
+  | { name: "seeds" }
+  | { name: "seed-form"; seedId?: string };

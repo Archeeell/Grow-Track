@@ -21,6 +21,11 @@ function updateBuiltInGrowTimes(seeds: Seed[]): Seed[] {
   });
 }
 
+/** Ensure every farm has the harvestedAt field (back-fill older persisted data). */
+function migrateFarms(farms: Farm[]): Farm[] {
+  return farms.map((f) => (f.harvestedAt === undefined ? { ...f, harvestedAt: null } : f));
+}
+
 export async function loadData(): Promise<AppData> {
   try {
     const raw = await AsyncStorage.getItem(KEY);
@@ -31,9 +36,10 @@ export async function loadData(): Promise<AppData> {
     const stored = Array.isArray(parsed.seeds) && parsed.seeds.length > 0
       ? pruneRemovedBuiltins(parsed.seeds)
       : DEFAULT_SEEDS;
+    const rawFarms = Array.isArray(parsed.farms) ? parsed.farms : [];
     return {
       seeds: updateBuiltInGrowTimes(stored),
-      farms: Array.isArray(parsed.farms) ? parsed.farms : [],
+      farms: migrateFarms(rawFarms),
     };
   } catch {
     return { seeds: DEFAULT_SEEDS, farms: [] };
@@ -59,6 +65,7 @@ export function emptyFarmDraft(): Omit<Farm, 'id' | 'createdAt'> {
     manualOverride: false,
     notificationsEnabled: false,
     lastNotifiedReadyAt: null,
+    harvestedAt: null,
   };
 }
 

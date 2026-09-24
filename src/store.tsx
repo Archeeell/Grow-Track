@@ -21,10 +21,13 @@ type Store = {
   ready: boolean;
   farms: Farm[];
   seeds: Seed[];
-  addFarm: (farm: Omit<Farm, 'id' | 'createdAt' | 'lastNotifiedReadyAt'>) => Promise<void>;
+  addFarm: (farm: Omit<Farm, 'id' | 'createdAt' | 'lastNotifiedReadyAt' | 'harvestedAt'>) => Promise<void>;
   updateFarm: (id: string, patch: Partial<Farm>) => Promise<void>;
   deleteFarm: (id: string) => Promise<void>;
   resetFarm: (id: string) => Promise<void>;
+  harvestFarm: (id: string) => Promise<void>;
+  swapFarm: (id: string, newName: string, growMinutes: number) => Promise<void>;
+  replantFarm: (id: string, newName: string, growMinutes: number) => Promise<void>;
   addSeed: (seed: Omit<Seed, 'id' | 'builtIn'>) => Promise<Seed>;
   updateSeed: (id: string, patch: Partial<Seed>) => Promise<void>;
   deleteSeed: (id: string) => Promise<void>;
@@ -80,6 +83,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         id: newId('farm'),
         createdAt: new Date().toISOString(),
         lastNotifiedReadyAt: null,
+        harvestedAt: null,
       };
       const next = [...farms, entry];
       setFarms(next);
@@ -123,6 +127,67 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         plantedAt,
         readyAt: addMinutes(plantedAt, minutes),
         lastNotifiedReadyAt: null,
+        harvestedAt: null,
+      };
+      const next = farms.map((f) => (f.id === id ? nextFarm : f));
+      setFarms(next);
+      await persist(next, seeds);
+      await syncFarmNotification(nextFarm);
+    },
+    [farms, persist, seeds]
+  );
+
+  const harvestFarm: Store['harvestFarm'] = useCallback(
+    async (id) => {
+      const farm = farms.find((f) => f.id === id);
+      if (!farm) return;
+      const nextFarm: Farm = { ...farm, harvestedAt: new Date().toISOString() };
+      const next = farms.map((f) => (f.id === id ? nextFarm : f));
+      setFarms(next);
+      await persist(next, seeds);
+      await cancelFarmNotification(nextFarm);
+    },
+    [farms, persist, seeds]
+  );
+
+  /** Replace a ready farm with a fresh farm sharing the same seed type. */
+  const swapFarm: Store['swapFarm'] = useCallback(
+    async (id, newName, growMinutes) => {
+      const farm = farms.find((f) => f.id === id);
+      if (!farm) return;
+      await cancelFarmNotification(farm);
+      const plantedAt = new Date().toISOString();
+      const nextFarm: Farm = {
+        ...farm,
+        name: newName,
+        plantedAt,
+        readyAt: addMinutes(plantedAt, growMinutes),
+        manualOverride: true,
+        lastNotifiedReadyAt: null,
+        harvestedAt: null,
+      };
+      const next = farms.map((f) => (f.id === id ? nextFarm : f));
+      setFarms(next);
+      await persist(next, seeds);
+      await syncFarmNotification(nextFarm);
+    },
+    [farms, persist, seeds]
+  );
+
+  /** Reset a harvested farm after replanting, using a new name and grow time. */
+  const replantFarm: Store['replantFarm'] = useCallback(
+    async (id, newName, growMinutes) => {
+      const farm = farms.find((f) => f.id === id);
+      if (!farm) return;
+      const plantedAt = new Date().toISOString();
+      const nextFarm: Farm = {
+        ...farm,
+        name: newName,
+        plantedAt,
+        readyAt: addMinutes(plantedAt, growMinutes),
+        manualOverride: true,
+        lastNotifiedReadyAt: null,
+        harvestedAt: null,
       };
       const next = farms.map((f) => (f.id === id ? nextFarm : f));
       setFarms(next);
@@ -154,7 +219,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           if (farm.manualOverride) {
             return { ...farm, seedName: seed.name };
           }
-          const status = getStatus(farm.readyAt);
+          const status = getStatus(farm.readyAt, undefined, farm.harvestedAt);
           if (status !== 'growing') {
             return { ...farm, seedName: seed.name };
           }
@@ -206,6 +271,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       updateFarm,
       deleteFarm,
       resetFarm,
+      harvestFarm,
+      swapFarm,
+      replantFarm,
       addSeed,
       updateSeed,
       deleteSeed,
@@ -218,11 +286,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       deleteFarm,
       deleteSeed,
       farms,
+      harvestFarm,
       ready,
+      replantFarm,
       resetFarm,
       restoreStarterSeeds,
       seedById,
       seeds,
+      swapFarm,
       updateFarm,
       updateSeed,
     ]

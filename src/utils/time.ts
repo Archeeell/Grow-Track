@@ -51,7 +51,8 @@ export function formatDateTime(iso: string): string {
   });
 }
 
-export function getStatus(readyAt: string, now = Date.now()): HarvestStatus {
+export function getStatus(readyAt: string, now = Date.now(), harvestedAt?: string | null): HarvestStatus {
+  if (harvestedAt) return 'harvested';
   const ready = new Date(readyAt).getTime();
   if (now < ready) return 'growing';
   if (now < ready + READY_WINDOW_MS) return 'ready';

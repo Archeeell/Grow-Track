@@ -11,15 +11,28 @@ type Props = {
   now: number;
   onPress: () => void;
   onReset: () => void;
+  onSwap: () => void;
+  onHarvested: () => void;
+  onReplanted: () => void;
 };
 
-export function FarmRow({ farm, status, now, onPress, onReset }: Props) {
+export function FarmRow({
+  farm,
+  status,
+  now,
+  onPress,
+  onReset,
+  onSwap,
+  onHarvested,
+  onReplanted,
+}: Props) {
   return (
     <View
       style={[
         styles.row,
         status === 'ready' && styles.ready,
         status === 'overdue' && styles.overdue,
+        status === 'harvested' && styles.harvested,
       ]}
     >
       <Pressable accessibilityRole="button" onPress={onPress}>
@@ -36,12 +49,22 @@ export function FarmRow({ farm, status, now, onPress, onReset }: Props) {
           <StatusBadge status={status} />
         </View>
         <Text style={[styles.countdown, status === 'ready' && styles.countdownReady]}>
-          {formatCountdown(farm.readyAt, now)}
+          {status === 'harvested' ? 'Waiting to be replanted' : formatCountdown(farm.readyAt, now)}
         </Text>
         <Text style={styles.meta}>Ready {formatDateTime(farm.readyAt)}</Text>
       </Pressable>
+
       <View style={styles.bottom}>
-        <Button label="Reset" variant="secondary" onPress={onReset} />
+        {status === 'ready' ? (
+          <>
+            <Button label="Swap" variant="secondary" onPress={onSwap} style={styles.actionBtn} />
+            <Button label="Harvested" variant="primary" onPress={onHarvested} style={styles.actionBtn} />
+          </>
+        ) : status === 'harvested' ? (
+          <Button label="Replanted" variant="primary" onPress={onReplanted} style={styles.actionBtnFull} />
+        ) : (
+          <Button label="Reset" variant="secondary" onPress={onReset} />
+        )}
       </View>
     </View>
   );
@@ -63,6 +86,10 @@ const styles = StyleSheet.create({
   overdue: {
     backgroundColor: colors.overdueBg,
     borderColor: '#6B3328',
+  },
+  harvested: {
+    backgroundColor: '#1E1D10',
+    borderColor: '#4A4220',
   },
   top: {
     flexDirection: 'row',
@@ -87,6 +114,13 @@ const styles = StyleSheet.create({
     marginTop: spacing.sm,
     flexDirection: 'row',
     justifyContent: 'flex-end',
+    gap: spacing.sm,
+  },
+  actionBtn: {
+    flex: 1,
+  },
+  actionBtnFull: {
+    flex: 1,
   },
   countdown: {
     color: colors.text,
