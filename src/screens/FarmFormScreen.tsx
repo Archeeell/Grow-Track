@@ -114,7 +114,7 @@ export function FarmFormScreen({ farmId, onBack }: Props) {
   }, [totalRemainMinutes]);
 
   const save = async () => {
-    const trimmed = name.trim();
+    const trimmed = name.trim().toUpperCase();
     if (!trimmed) {
       setError("Give this farm a name so you can spot it later.");
       return;
@@ -194,9 +194,11 @@ export function FarmFormScreen({ farmId, onBack }: Props) {
       <ScreenScroll>
         <Field
           label="Farm name"
-          placeholder="World ABCXYZ — Lower Left"
+          placeholder="WORLD NAME"
           value={name}
           onChangeText={setName}
+          autoCorrect={false}
+          autoCapitalize="characters"
         />
 
         <Text style={styles.label}>Seed type</Text>
