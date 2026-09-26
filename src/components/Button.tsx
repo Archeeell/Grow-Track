@@ -51,7 +51,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
   },
   danger: {
-    backgroundColor: colors.overdueBg,
+    backgroundColor: colors.dangerBg,
     borderWidth: 1,
     borderColor: colors.danger,
   },

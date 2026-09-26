@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState } from "react";
 import {
   FlatList,
   KeyboardAvoidingView,
@@ -9,16 +9,21 @@ import {
   Text,
   TextInput,
   View,
-} from 'react-native';
-import { FarmRow } from '../components/FarmRow';
-import { Screen } from '../components/Screen';
-import { Button } from '../components/Button';
-import { useNow } from '../hooks/useNow';
-import { useStore } from '../store';
-import { colors, radius, spacing } from '../theme';
-import type { Farm, HarvestStatus, Seed } from '../types';
-import { confirmAction } from '../utils/confirm';
-import { addMinutes, getStatus, minutesToDHM, parseNonNegInt } from '../utils/time';
+} from "react-native";
+import { FarmRow } from "../components/FarmRow";
+import { Screen } from "../components/Screen";
+import { Button } from "../components/Button";
+import { useNow } from "../hooks/useNow";
+import { useStore } from "../store";
+import { colors, radius, spacing } from "../theme";
+import type { Farm, HarvestStatus, Seed } from "../types";
+import { confirmAction } from "../utils/confirm";
+import {
+  addMinutes,
+  getStatus,
+  minutesToDHM,
+  parseNonNegInt,
+} from "../utils/time";
 
 const rank: Record<HarvestStatus, number> = {
   ready: 0,
@@ -34,20 +39,21 @@ type Props = {
 
 // ─── Swap / Replant modal state ───────────────────────────────────────────────
 type ActionModal =
-  | { type: 'swap'; farm: Farm; seed: Seed | undefined }
-  | { type: 'replant'; farm: Farm; seed: Seed | undefined };
+  | { type: "swap"; farm: Farm; seed: Seed | undefined }
+  | { type: "replant"; farm: Farm; seed: Seed | undefined };
 
 export function DashboardScreen({ onAddFarm, onOpenSeeds, onEditFarm }: Props) {
-  const { farms, seeds, resetFarm, harvestFarm, swapFarm, replantFarm } = useStore();
+  const { farms, seeds, resetFarm, harvestFarm, swapFarm, replantFarm } =
+    useStore();
   const now = useNow(1000);
 
   const [modal, setModal] = useState<ActionModal | null>(null);
 
   // Fields inside the modal
-  const [modalName, setModalName] = useState('');
-  const [modalDays, setModalDays] = useState('');
-  const [modalHours, setModalHours] = useState('');
-  const [modalMinutes, setModalMinutes] = useState('');
+  const [modalName, setModalName] = useState("");
+  const [modalDays, setModalDays] = useState("");
+  const [modalHours, setModalHours] = useState("");
+  const [modalMinutes, setModalMinutes] = useState("");
   const [modalError, setModalError] = useState<string | null>(null);
 
   const sorted = useMemo(() => {
@@ -60,50 +66,54 @@ export function DashboardScreen({ onAddFarm, onOpenSeeds, onEditFarm }: Props) {
   }, [farms, now]);
 
   const readyCount = sorted.filter(
-    (f) => getStatus(f.readyAt, now, f.harvestedAt) !== 'growing'
+    (f) => getStatus(f.readyAt, now, f.harvestedAt) !== "growing",
   ).length;
 
   const confirmReset = (farm: Farm) => {
     confirmAction(
-      'Reset timer?',
+      "Reset timer?",
       `Start a new cycle for "${farm.name}" as if just planted.`,
-      'Reset',
-      () => void resetFarm(farm.id)
+      "Reset",
+      () => void resetFarm(farm.id),
     );
   };
 
   // ── Open modal helpers ────────────────────────────────────────────────────
   const openSwap = (farm: Farm) => {
-    const seed = farm.seedId ? seeds.find((s) => s.id === farm.seedId) : undefined;
+    const seed = farm.seedId
+      ? seeds.find((s) => s.id === farm.seedId)
+      : undefined;
     // Prefill grow time from seed default
     const defaultMinutes = seed?.growTimeMinutes ?? 0;
     const dhm = minutesToDHM(defaultMinutes);
-    setModalName('');
-    setModalDays(dhm.days > 0 ? String(dhm.days) : '');
-    setModalHours(dhm.hours > 0 ? String(dhm.hours) : '');
-    setModalMinutes(dhm.minutes > 0 ? String(dhm.minutes) : '');
+    setModalName("");
+    setModalDays(dhm.days > 0 ? String(dhm.days) : "");
+    setModalHours(dhm.hours > 0 ? String(dhm.hours) : "");
+    setModalMinutes(dhm.minutes > 0 ? String(dhm.minutes) : "");
     setModalError(null);
-    setModal({ type: 'swap', farm, seed });
+    setModal({ type: "swap", farm, seed });
   };
 
   const openReplant = (farm: Farm) => {
-    const seed = farm.seedId ? seeds.find((s) => s.id === farm.seedId) : undefined;
+    const seed = farm.seedId
+      ? seeds.find((s) => s.id === farm.seedId)
+      : undefined;
     const defaultMinutes = seed?.growTimeMinutes ?? 0;
     const dhm = minutesToDHM(defaultMinutes);
     setModalName(farm.name);
-    setModalDays(dhm.days > 0 ? String(dhm.days) : '');
-    setModalHours(dhm.hours > 0 ? String(dhm.hours) : '');
-    setModalMinutes(dhm.minutes > 0 ? String(dhm.minutes) : '');
+    setModalDays(dhm.days > 0 ? String(dhm.days) : "");
+    setModalHours(dhm.hours > 0 ? String(dhm.hours) : "");
+    setModalMinutes(dhm.minutes > 0 ? String(dhm.minutes) : "");
     setModalError(null);
-    setModal({ type: 'replant', farm, seed });
+    setModal({ type: "replant", farm, seed });
   };
 
   const closeModal = () => setModal(null);
 
   const totalModalMinutes = useMemo(() => {
-    const d = parseNonNegInt(modalDays || '0') ?? 0;
-    const h = parseNonNegInt(modalHours || '0') ?? 0;
-    const m = parseNonNegInt(modalMinutes || '0') ?? 0;
+    const d = parseNonNegInt(modalDays || "0") ?? 0;
+    const h = parseNonNegInt(modalHours || "0") ?? 0;
+    const m = parseNonNegInt(modalMinutes || "0") ?? 0;
     return d * 24 * 60 + h * 60 + m;
   }, [modalDays, modalHours, modalMinutes]);
 
@@ -116,15 +126,15 @@ export function DashboardScreen({ onAddFarm, onOpenSeeds, onEditFarm }: Props) {
     if (!modal) return;
     const trimmedName = modalName.trim();
     if (!trimmedName) {
-      setModalError('Please enter a name for this farm.');
+      setModalError("Please enter a name for this farm.");
       return;
     }
     if (totalModalMinutes < 1) {
-      setModalError('Enter a grow duration of at least 1 minute.');
+      setModalError("Enter a grow duration of at least 1 minute.");
       return;
     }
     closeModal();
-    if (modal.type === 'swap') {
+    if (modal.type === "swap") {
       await swapFarm(modal.farm.id, trimmedName, totalModalMinutes);
     } else {
       await replantFarm(modal.farm.id, trimmedName, totalModalMinutes);
@@ -133,10 +143,10 @@ export function DashboardScreen({ onAddFarm, onOpenSeeds, onEditFarm }: Props) {
 
   const confirmHarvest = (farm: Farm) => {
     confirmAction(
-      'Mark as harvested?',
+      "Mark as harvested?",
       `"${farm.name}" will be marked as harvested and waiting to be replanted.`,
-      'Harvested',
-      () => void harvestFarm(farm.id)
+      "Harvested",
+      () => void harvestFarm(farm.id),
     );
   };
 
@@ -145,13 +155,14 @@ export function DashboardScreen({ onAddFarm, onOpenSeeds, onEditFarm }: Props) {
       <View style={styles.body}>
         <View style={styles.banner}>
           <Text style={styles.bannerText}>
-            Grow times are estimates and can change in-game. Verify in Growtopia, then edit the seed table if needed.
+            Grow times are estimates and can change in-game. Verify in
+            Growtopia, then edit the seed table if needed.
           </Text>
         </View>
         <View style={styles.toolbar}>
           <Text style={styles.summary}>
             {farms.length === 0
-              ? 'No farms yet'
+              ? "No farms yet"
               : `${readyCount} ready · ${farms.length} total`}
           </Text>
           <Button label="Add farm" onPress={onAddFarm} />
@@ -162,9 +173,12 @@ export function DashboardScreen({ onAddFarm, onOpenSeeds, onEditFarm }: Props) {
           contentContainerStyle={styles.list}
           ListEmptyComponent={
             <View style={styles.empty}>
-              <Text style={styles.emptyTitle}>Track harvest windows in one place</Text>
+              <Text style={styles.emptyTitle}>
+                Track harvest windows in one place
+              </Text>
               <Text style={styles.emptyBody}>
-                Add each world or farm plot, pick a seed (or a manual timer), and check this list instead of logging into every world.
+                Add each world or farm plot, pick a seed (or a manual timer),
+                and check this list instead of logging into every world.
               </Text>
             </View>
           }
@@ -192,27 +206,28 @@ export function DashboardScreen({ onAddFarm, onOpenSeeds, onEditFarm }: Props) {
       >
         <KeyboardAvoidingView
           style={styles.overlay}
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
         >
           <Pressable style={StyleSheet.absoluteFill} onPress={closeModal} />
           <View style={styles.sheet}>
             {modal && (
               <>
                 <Text style={styles.sheetTitle}>
-                  {modal.type === 'swap' ? '↔ Swap Farm' : '🌱 Replant Farm'}
+                  {modal.type === "swap" ? "↔ Swap Farm" : "🌱 Replant Farm"}
                 </Text>
 
                 {/* Seed type (locked, inherited) */}
                 <View style={styles.seedPill}>
                   <Text style={styles.seedPillLabel}>Seed type</Text>
                   <Text style={styles.seedPillValue}>
-                    {modal.seed?.name ?? 'Custom / manual'}
+                    {modal.seed?.name ?? "Custom / manual"}
                   </Text>
                 </View>
 
-                {modal.type === 'swap' ? (
+                {modal.type === "swap" ? (
                   <Text style={styles.sheetHint}>
-                    Enter the name of the new farm. The seed type stays the same.
+                    Enter the name of the new farm. The seed type stays the
+                    same.
                   </Text>
                 ) : (
                   <Text style={styles.sheetHint}>
@@ -225,8 +240,15 @@ export function DashboardScreen({ onAddFarm, onOpenSeeds, onEditFarm }: Props) {
                 <TextInput
                   style={styles.input}
                   value={modalName}
-                  onChangeText={(v) => { setModalName(v); setModalError(null); }}
-                  placeholder={modal.type === 'swap' ? 'World ABCXYZ — Lower Left' : modal.farm.name}
+                  onChangeText={(v) => {
+                    setModalName(v);
+                    setModalError(null);
+                  }}
+                  placeholder={
+                    modal.type === "swap"
+                      ? "World ABCXYZ — Lower Left"
+                      : modal.farm.name
+                  }
                   placeholderTextColor={colors.muted}
                 />
 
@@ -238,7 +260,10 @@ export function DashboardScreen({ onAddFarm, onOpenSeeds, onEditFarm }: Props) {
                     <TextInput
                       style={styles.input}
                       value={modalDays}
-                      onChangeText={(v) => { setModalDays(v); setModalError(null); }}
+                      onChangeText={(v) => {
+                        setModalDays(v);
+                        setModalError(null);
+                      }}
                       keyboardType="numeric"
                       placeholder="0"
                       placeholderTextColor={colors.muted}
@@ -249,7 +274,10 @@ export function DashboardScreen({ onAddFarm, onOpenSeeds, onEditFarm }: Props) {
                     <TextInput
                       style={styles.input}
                       value={modalHours}
-                      onChangeText={(v) => { setModalHours(v); setModalError(null); }}
+                      onChangeText={(v) => {
+                        setModalHours(v);
+                        setModalError(null);
+                      }}
                       keyboardType="numeric"
                       placeholder="0"
                       placeholderTextColor={colors.muted}
@@ -260,7 +288,10 @@ export function DashboardScreen({ onAddFarm, onOpenSeeds, onEditFarm }: Props) {
                     <TextInput
                       style={styles.input}
                       value={modalMinutes}
-                      onChangeText={(v) => { setModalMinutes(v); setModalError(null); }}
+                      onChangeText={(v) => {
+                        setModalMinutes(v);
+                        setModalError(null);
+                      }}
                       keyboardType="numeric"
                       placeholder="0"
                       placeholderTextColor={colors.muted}
@@ -270,8 +301,12 @@ export function DashboardScreen({ onAddFarm, onOpenSeeds, onEditFarm }: Props) {
 
                 {modalPreviewReady ? (
                   <Text style={styles.preview}>
-                    Ready at {new Date(modalPreviewReady).toLocaleString(undefined, {
-                      month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit',
+                    Ready at{" "}
+                    {new Date(modalPreviewReady).toLocaleString(undefined, {
+                      month: "short",
+                      day: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit",
                     })}
                   </Text>
                 ) : null}
@@ -281,9 +316,14 @@ export function DashboardScreen({ onAddFarm, onOpenSeeds, onEditFarm }: Props) {
                 ) : null}
 
                 <View style={styles.sheetActions}>
-                  <Button label="Cancel" variant="secondary" onPress={closeModal} style={styles.sheetBtn} />
                   <Button
-                    label={modal.type === 'swap' ? 'Swap' : 'Replant'}
+                    label="Cancel"
+                    variant="secondary"
+                    onPress={closeModal}
+                    style={styles.sheetBtn}
+                  />
+                  <Button
+                    label={modal.type === "swap" ? "Swap" : "Replant"}
                     variant="primary"
                     onPress={() => void confirmModal()}
                     style={styles.sheetBtn}
@@ -315,14 +355,14 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   toolbar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     gap: spacing.sm,
   },
   summary: {
     color: colors.muted,
-    fontWeight: '600',
+    fontWeight: "600",
     flex: 1,
   },
   list: {
@@ -336,7 +376,7 @@ const styles = StyleSheet.create({
   emptyTitle: {
     color: colors.text,
     fontSize: 18,
-    fontWeight: '700',
+    fontWeight: "700",
   },
   emptyBody: {
     color: colors.muted,
@@ -346,8 +386,8 @@ const styles = StyleSheet.create({
   // ── Modal ──────────────────────────────────────────────────────────────
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.65)',
-    justifyContent: 'flex-end',
+    backgroundColor: "rgba(0,0,0,0.65)",
+    justifyContent: "flex-end",
   },
   sheet: {
     backgroundColor: colors.surface,
@@ -361,7 +401,7 @@ const styles = StyleSheet.create({
   sheetTitle: {
     color: colors.text,
     fontSize: 18,
-    fontWeight: '800',
+    fontWeight: "800",
     marginBottom: spacing.xs,
   },
   sheetHint: {
@@ -370,8 +410,8 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   seedPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     backgroundColor: colors.surfaceRaised,
     borderRadius: radius.md,
     padding: spacing.sm,
@@ -382,18 +422,18 @@ const styles = StyleSheet.create({
   seedPillLabel: {
     color: colors.muted,
     fontSize: 13,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   seedPillValue: {
     color: colors.accent,
     fontSize: 13,
-    fontWeight: '700',
+    fontWeight: "700",
     flex: 1,
   },
   fieldLabel: {
     color: colors.muted,
     fontSize: 13,
-    fontWeight: '600',
+    fontWeight: "600",
     marginTop: spacing.xs,
   },
   input: {
@@ -407,7 +447,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   dhmRow: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: spacing.sm,
   },
   dhmCell: {
@@ -417,11 +457,11 @@ const styles = StyleSheet.create({
   dhmLabel: {
     color: colors.muted,
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   preview: {
     color: colors.accent,
-    fontWeight: '700',
+    fontWeight: "700",
     fontSize: 13,
   },
   modalError: {
@@ -429,7 +469,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
   },
   sheetActions: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: spacing.sm,
     marginTop: spacing.xs,
   },

@@ -146,7 +146,7 @@ export async function fireDueNotification(farm: Farm): Promise<boolean> {
   const readyMs = new Date(farm.readyAt).getTime();
   const now = Date.now();
   if (readyMs > now) return false;
-  // Skip the catch-up notification if the farm is overdue (past the ready window)
+  // Skip catch-up notification if ready time was too long ago (outside the 1-hour window)
   if (now >= readyMs + READY_WINDOW_MS) return false;
   if (farm.lastNotifiedReadyAt === farm.readyAt) return false;
 
