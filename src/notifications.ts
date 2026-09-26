@@ -139,9 +139,15 @@ function scheduleWebNotification(farm: Farm, readyMs: number): void {
   webTimers.set(farm.id, timer);
 }
 
+const READY_WINDOW_MS = 60 * 60 * 1000;
+
 export async function fireDueNotification(farm: Farm): Promise<boolean> {
   if (!farm.notificationsEnabled) return false;
-  if (new Date(farm.readyAt).getTime() > Date.now()) return false;
+  const readyMs = new Date(farm.readyAt).getTime();
+  const now = Date.now();
+  if (readyMs > now) return false;
+  // Skip the catch-up notification if the farm is overdue (past the ready window)
+  if (now >= readyMs + READY_WINDOW_MS) return false;
   if (farm.lastNotifiedReadyAt === farm.readyAt) return false;
 
   const allowed = await ensureNotificationPermission();

@@ -1,7 +1,5 @@
 import type { Farm, HarvestStatus, Seed } from '../types';
 
-const READY_WINDOW_MS = 60 * 60 * 1000;
-
 export function nowMs(clock = Date.now): number {
   return clock();
 }
@@ -38,7 +36,7 @@ export function formatCountdown(readyAt: string, now = Date.now()): string {
   const diff = new Date(readyAt).getTime() - now;
   if (diff > 0) return `${formatDuration(diff)} left`;
   if (diff > -60_000) return 'Ready now';
-  return `${formatDuration(diff)} overdue`;
+  return 'Ready';
 }
 
 export function formatDateTime(iso: string): string {
@@ -55,8 +53,7 @@ export function getStatus(readyAt: string, now = Date.now(), harvestedAt?: strin
   if (harvestedAt) return 'harvested';
   const ready = new Date(readyAt).getTime();
   if (now < ready) return 'growing';
-  if (now < ready + READY_WINDOW_MS) return 'ready';
-  return 'overdue';
+  return 'ready';
 }
 
 export function cycleMinutes(seed: Seed | undefined, farm: Farm): number {

@@ -5,7 +5,6 @@ import type { HarvestStatus } from '../types';
 const labels: Record<HarvestStatus, string> = {
   growing: 'Growing',
   ready: 'Ready',
-  overdue: 'Overdue',
   harvested: 'Harvested',
 };
 
@@ -16,7 +15,6 @@ export function StatusBadge({ status }: { status: HarvestStatus }) {
         styles.badge,
         status === 'ready' && styles.ready,
         status === 'growing' && styles.growing,
-        status === 'overdue' && styles.overdue,
         status === 'harvested' && styles.harvested,
       ]}
     >
@@ -43,10 +41,6 @@ const styles = StyleSheet.create({
   growing: {
     backgroundColor: '#3A3418',
     color: colors.growing,
-  },
-  overdue: {
-    backgroundColor: colors.overdueBg,
-    color: colors.overdue,
   },
   harvested: {
     backgroundColor: '#2A2818',

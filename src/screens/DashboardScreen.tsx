@@ -23,8 +23,7 @@ import { addMinutes, getStatus, minutesToDHM, parseNonNegInt } from '../utils/ti
 const rank: Record<HarvestStatus, number> = {
   ready: 0,
   harvested: 1,
-  overdue: 2,
-  growing: 3,
+  growing: 2,
 };
 
 type Props = {

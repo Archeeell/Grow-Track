@@ -31,7 +31,6 @@ export function FarmRow({
       style={[
         styles.row,
         status === 'ready' && styles.ready,
-        status === 'overdue' && styles.overdue,
         status === 'harvested' && styles.harvested,
       ]}
     >
@@ -82,10 +81,6 @@ const styles = StyleSheet.create({
   ready: {
     backgroundColor: colors.readyBg,
     borderColor: colors.accentDim,
-  },
-  overdue: {
-    backgroundColor: colors.overdueBg,
-    borderColor: '#6B3328',
   },
   harvested: {
     backgroundColor: '#1E1D10',

@@ -1,4 +1,4 @@
-export type HarvestStatus = "growing" | "ready" | "overdue" | "harvested";
+export type HarvestStatus = "growing" | "ready" | "harvested";
 
 export type Seed = {
   id: string;
