@@ -4,7 +4,7 @@ import { FarmFormScreen } from '../src/screens/FarmFormScreen';
 
 // Mock the store hook
 jest.mock('../src/store', () => ({
-  useStore: () => ({
+  useStore: jest.fn(() => ({
     farms: [],
     seeds: [
       { id: 'sugar-cane', name: 'Sugar Cane', growTimeMinutes: 242, reharvestIntervalMinutes: null, builtIn: true },
@@ -13,7 +13,7 @@ jest.mock('../src/store', () => ({
     addFarm: jest.fn(),
     updateFarm: jest.fn(),
     deleteFarm: jest.fn(),
-  })
+  }))
 }));
 
 describe('FarmFormScreen', () => {
@@ -55,6 +55,6 @@ describe('FarmFormScreen', () => {
     });
 
     const { getByPlaceholderText } = render(<FarmFormScreen farmId="farm-1" onBack={() => {}} />);
-    expect(getByPlaceholderText('WORLD NAME')).toHaveValue('TEST FARM');
+    expect(getByPlaceholderText('WORLD NAME').props.value).toBe('TEST FARM');
   });
 });
