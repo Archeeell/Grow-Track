@@ -81,10 +81,9 @@ export function FarmFormScreen({ farmId, onBack }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedSeed]);
 
-  // When user selects a different seed, reset the touch flag so fields re-populate
+  // When user selects a different seed, keep the touch flag as is
   const handleSeedSelect = (id: string | null) => {
     setSeedId(id);
-    setDurationTouched(false);
   };
 
   const handleDayChange = (v: string) => {
@@ -157,14 +156,15 @@ export function FarmFormScreen({ farmId, onBack }: Props) {
       seedName: selectedSeed?.name ?? "Custom / manual",
       plantedAt,
       readyAt,
-      manualOverride: true,
+      manualOverride: durationTouched || (existing ? existing.manualOverride : false),
       notificationsEnabled,
     };
 
     if (existing) {
       await updateFarm(existing.id, {
         ...payload,
-        harvestedAt: null,
+        // Preserve harvestedAt - only clear if user explicitly transitions out of harvested state
+        harvestedAt: existing.harvestedAt,
         lastNotifiedReadyAt:
           payload.readyAt !== existing.readyAt
             ? null

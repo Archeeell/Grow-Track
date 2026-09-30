@@ -153,14 +153,19 @@ export async function fireDueNotification(farm: Farm): Promise<boolean> {
   const allowed = await ensureNotificationPermission();
   if (!allowed) return false;
 
+  let notificationShown = false;
+
   if (Platform.OS === "web" || isExpoGo || !Notifications) {
-    if (
-      typeof Notification !== "undefined" &&
-      Notification.permission !== "granted"
-    ) {
-      new Notification("Farm ready to harvest", {
-        body: `${farm.name} (${farm.seedName}) is ready.`,
-      });
+    if (typeof Notification !== "undefined" && Notification.permission === "granted") {
+      try {
+        new Notification("Farm ready to harvest", {
+          body: `${farm.name} (${farm.seedName}) is ready.`,
+        });
+        notificationShown = true;
+      } catch {
+        // Notification construction failed
+        notificationShown = false;
+      }
     }
   } else {
     try {
@@ -172,11 +177,14 @@ export async function fireDueNotification(farm: Farm): Promise<boolean> {
         },
         trigger: null,
       });
+      notificationShown = true;
     } catch {
       // ignore in unsupported environments
+      notificationShown = false;
     }
   }
-  return true;
+
+  return notificationShown;
 }
 
 export async function syncAllNotifications(farms: Farm[]): Promise<void> {
