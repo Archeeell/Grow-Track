@@ -1,10 +1,15 @@
 import { useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
-import { Button } from '../components/Button';
-import { Field } from '../components/Field';
-import { Screen, ScreenScroll } from '../components/Screen';
+import {
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useStore } from '../store';
-import { colors, spacing } from '../theme';
+import { colors, radius, spacing } from '../theme';
 import { confirmAction } from '../utils/confirm';
 import { minutesToDHM, parseNonNegInt } from '../utils/time';
 
@@ -71,64 +76,195 @@ export function SeedFormScreen({ seedId, onBack }: Props) {
   };
 
   return (
-    <Screen title={existing ? 'Edit seed' : 'Add seed'} onBack={onBack}>
-      <ScreenScroll>
-        <Field label="Seed name" value={name} onChangeText={setName} placeholder="Cactus" />
+    <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
+      {/* Header */}
+      <View style={styles.header}>
+        <Pressable onPress={onBack} style={styles.closeBtn} accessibilityRole="button">
+          <Text style={styles.closeBtnText}>✕</Text>
+        </Pressable>
+        <Text style={styles.title}>{existing ? 'Edit Seed' : 'Add Seed'}</Text>
+        <View style={styles.headerSpacer} />
+      </View>
 
-        <Text style={styles.groupLabel}>Grow time (to first harvest)</Text>
-        <View style={styles.dhmRow}>
-          <View style={styles.dhmField}>
-            <Field
-              label="Days"
-              value={growDays}
-              onChangeText={setGrowDays}
-              keyboardType="numeric"
-              placeholder="0"
-            />
-          </View>
-          <View style={styles.dhmField}>
-            <Field
-              label="Hours"
-              value={growHours}
-              onChangeText={setGrowHours}
-              keyboardType="numeric"
-              placeholder="0"
-            />
-          </View>
-          <View style={styles.dhmField}>
-            <Field
-              label="Minutes"
-              value={growMins}
-              onChangeText={setGrowMins}
-              keyboardType="numeric"
-              placeholder="0"
-            />
-          </View>
+      <ScrollView
+        contentContainerStyle={styles.scroll}
+        keyboardShouldPersistTaps="handled"
+      >
+        {/* Seed name */}
+        <View style={styles.fieldWrap}>
+          <Text style={styles.fieldLabel}>Seed name</Text>
+          <TextInput
+            style={styles.input}
+            value={name}
+            onChangeText={setName}
+            placeholder="Cactus"
+            placeholderTextColor={colors.mutedForeground}
+          />
         </View>
 
+        {/* Grow time */}
+        <Text style={styles.sectionLabel}>Grow time (to first harvest)</Text>
+        <View style={styles.dhmRow}>
+          {[
+            { label: 'Days', value: growDays, set: setGrowDays },
+            { label: 'Hours', value: growHours, set: setGrowHours },
+            { label: 'Mins', value: growMins, set: setGrowMins },
+          ].map(({ label, value, set }) => (
+            <View key={label} style={styles.dhmCell}>
+              <TextInput
+                style={styles.dhmInput}
+                value={value}
+                onChangeText={set}
+                keyboardType="numeric"
+                placeholder="0"
+                placeholderTextColor={colors.mutedForeground}
+                textAlign="center"
+              />
+              <Text style={styles.dhmLabel}>{label}</Text>
+            </View>
+          ))}
+        </View>
 
         {error ? <Text style={styles.error}>{error}</Text> : null}
-        <Button label={existing ? 'Save seed' : 'Add seed'} onPress={() => void save()} />
-        {existing ? <Button label="Delete seed" variant="danger" onPress={remove} /> : null}
-      </ScreenScroll>
-    </Screen>
+
+        <Pressable
+          style={styles.saveBtn}
+          onPress={() => void save()}
+          accessibilityRole="button"
+        >
+          <Text style={styles.saveBtnText}>
+            {existing ? 'Save seed' : 'Add seed'}
+          </Text>
+        </Pressable>
+
+        {existing ? (
+          <Pressable style={styles.deleteBtn} onPress={remove} accessibilityRole="button">
+            <Text style={styles.deleteBtnText}>Delete seed</Text>
+          </Pressable>
+        ) : null}
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  error: {
-    color: colors.danger,
+  safe: {
+    flex: 1,
+    backgroundColor: colors.bg,
   },
-  groupLabel: {
-    color: colors.muted,
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  closeBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  closeBtnText: {
+    color: colors.mutedForeground,
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  title: {
+    flex: 1,
+    textAlign: 'center',
+    color: colors.foreground,
+    fontSize: 17,
+    fontWeight: '800',
+  },
+  headerSpacer: {
+    width: 36,
+  },
+  scroll: {
+    padding: spacing.md,
+    paddingBottom: 40,
+    gap: spacing.md,
+  },
+  fieldWrap: {
+    gap: 6,
+  },
+  fieldLabel: {
+    color: colors.mutedForeground,
     fontSize: 13,
     fontWeight: '600',
+  },
+  input: {
+    backgroundColor: colors.muted,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    color: colors.foreground,
+    minHeight: 48,
+    paddingHorizontal: spacing.md,
+    fontSize: 16,
+  },
+  sectionLabel: {
+    color: colors.foreground,
+    fontWeight: '700',
+    fontSize: 14,
   },
   dhmRow: {
     flexDirection: 'row',
     gap: spacing.sm,
   },
-  dhmField: {
+  dhmCell: {
     flex: 1,
+    alignItems: 'center',
+    gap: 4,
+  },
+  dhmInput: {
+    backgroundColor: colors.muted,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    color: colors.foreground,
+    height: 64,
+    width: '100%',
+    fontSize: 28,
+    fontWeight: '700',
+    textAlign: 'center',
+  },
+  dhmLabel: {
+    color: colors.mutedForeground,
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  error: {
+    color: colors.destruct,
+    fontSize: 13,
+  },
+  saveBtn: {
+    backgroundColor: colors.primary,
+    borderRadius: 10,
+    minHeight: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  saveBtnText: {
+    color: '#0B1510',
+    fontWeight: '700',
+    fontSize: 16,
+  },
+  deleteBtn: {
+    backgroundColor: 'rgba(233,106,106,0.10)',
+    borderWidth: 1,
+    borderColor: colors.destruct,
+    borderRadius: 10,
+    minHeight: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  deleteBtnText: {
+    color: colors.destruct,
+    fontWeight: '700',
+    fontSize: 15,
   },
 });

@@ -1,67 +1,250 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { Screen, ScreenScroll } from '../components/Screen';
-import { Button } from '../components/Button';
+import { useMemo, useState } from 'react';
+import {
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { TabBar } from '../components/TabBar';
 import { useStore } from '../store';
 import { colors, radius, spacing } from '../theme';
+import { getSeedIcon } from '../data/seedIcons';
 import { formatGrowTime } from '../utils/time';
+import type { Route } from '../types';
 
 type Props = {
   onBack: () => void;
   onAdd: () => void;
   onEdit: (id: string) => void;
+  onNavigate: (route: Route) => void;
 };
 
-export function SeedManagerScreen({ onBack, onAdd, onEdit }: Props) {
+type FilterTab = 'all' | 'reharvest' | 'onetime';
+
+export function SeedManagerScreen({ onBack, onAdd, onEdit, onNavigate }: Props) {
   const { seeds, restoreStarterSeeds } = useStore();
+  const [filter, setFilter] = useState<FilterTab>('all');
+  const [search, setSearch] = useState('');
+
+  const filtered = useMemo(() => {
+    let list = [...seeds];
+    if (filter === 'reharvest') {
+      list = list.filter((s) => s.reharvestIntervalMinutes != null);
+    } else if (filter === 'onetime') {
+      list = list.filter((s) => s.reharvestIntervalMinutes == null);
+    }
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      list = list.filter((s) => s.name.toLowerCase().includes(q));
+    }
+    return list;
+  }, [seeds, filter, search]);
 
   return (
-    <Screen title="Seed table" onBack={onBack} rightLabel="Add" onRight={onAdd}>
-      <ScreenScroll>
-        <Text style={styles.banner}>
-          Starter times use Growtopia’s rarity formula and may be outdated. Edit anything that doesn’t match in-game.
-        </Text>
-        {seeds.map((seed) => (
+    <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
+      {/* Header */}
+      <View style={styles.header}>
+        <View>
+          <Text style={styles.title}>Seeds</Text>
+          <Text style={styles.subtitle}>Your GrowTrack seed library</Text>
+        </View>
+        <Pressable
+          style={styles.addBtn}
+          onPress={onAdd}
+          accessibilityRole="button"
+          accessibilityLabel="Add seed"
+        >
+          <Text style={styles.addBtnText}>+</Text>
+        </Pressable>
+      </View>
+
+      {/* Search */}
+      <View style={styles.searchWrap}>
+        <TextInput
+          style={styles.searchInput}
+          placeholder="🔍 Search seeds…"
+          placeholderTextColor={colors.mutedForeground}
+          value={search}
+          onChangeText={setSearch}
+        />
+      </View>
+
+      {/* Filter tabs */}
+      <View style={styles.tabsRow}>
+        {(
+          [
+            { id: 'all', label: 'All' },
+            { id: 'reharvest', label: 'Re-harvest' },
+            { id: 'onetime', label: 'One-time' },
+          ] as { id: FilterTab; label: string }[]
+        ).map((tab) => (
+          <Pressable
+            key={tab.id}
+            style={[styles.filterTab, filter === tab.id && styles.filterTabActive]}
+            onPress={() => setFilter(tab.id)}
+          >
+            <Text
+              style={[
+                styles.filterTabText,
+                filter === tab.id && styles.filterTabTextActive,
+              ]}
+            >
+              {tab.label}
+            </Text>
+          </Pressable>
+        ))}
+      </View>
+
+      {/* Seed list */}
+      <ScrollView
+        contentContainerStyle={styles.list}
+        keyboardShouldPersistTaps="handled"
+      >
+        {filtered.map((seed) => (
           <Pressable
             key={seed.id}
             accessibilityRole="button"
             onPress={() => onEdit(seed.id)}
-            style={styles.row}
+            style={styles.seedCard}
           >
-            <View style={styles.flex}>
-              <Text style={styles.name}>{seed.name}</Text>
-              <Text style={styles.meta}>
+            <View style={styles.seedIconBox}>
+              <Text style={styles.seedEmoji}>{getSeedIcon(seed.id)}</Text>
+            </View>
+            <View style={styles.seedInfo}>
+              <Text style={styles.seedName}>{seed.name}</Text>
+              <Text style={styles.seedMeta}>
                 Grow {formatGrowTime(seed.growTimeMinutes)}
                 {seed.reharvestIntervalMinutes != null
                   ? ` · Re-harvest ${formatGrowTime(seed.reharvestIntervalMinutes)}`
-                  : ' · One-time'}
+                  : ''}
               </Text>
             </View>
-            <Text style={styles.edit}>Edit</Text>
+            <View style={styles.seedRight}>
+              {seed.reharvestIntervalMinutes != null ? (
+                <View style={styles.badge}>
+                  <Text style={styles.badgeText}>Re-harvest</Text>
+                </View>
+              ) : (
+                <View style={[styles.badge, styles.badgeOnetime]}>
+                  <Text style={[styles.badgeText, styles.badgeOnetimeText]}>
+                    One-time
+                  </Text>
+                </View>
+              )}
+              <Text style={styles.editLabel}>Edit</Text>
+            </View>
           </Pressable>
         ))}
-        <Button
-          label="Restore missing starter seeds"
-          variant="secondary"
-          onPress={() => {
-            void restoreStarterSeeds();
-            // no-op besides restore; the list updates in place
-          }}
-        />
-      </ScreenScroll>
-    </Screen>
+
+        {filtered.length === 0 && (
+          <View style={styles.empty}>
+            <Text style={styles.emptyText}>No seeds found</Text>
+          </View>
+        )}
+
+        <Pressable
+          style={styles.restoreBtn}
+          onPress={() => void restoreStarterSeeds()}
+          accessibilityRole="button"
+        >
+          <Text style={styles.restoreBtnText}>↺ Restore missing starter seeds</Text>
+        </Pressable>
+      </ScrollView>
+
+      <TabBar active="seeds" onNavigate={onNavigate} />
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  banner: {
-    color: colors.warningText,
-    backgroundColor: colors.warningBg,
-    padding: spacing.sm,
-    borderRadius: radius.md,
-    lineHeight: 18,
+  safe: {
+    flex: 1,
+    backgroundColor: colors.bg,
   },
-  row: {
+  header: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.sm,
+    paddingBottom: spacing.sm,
+  },
+  title: {
+    color: colors.foreground,
+    fontSize: 28,
+    fontWeight: '900',
+    letterSpacing: -0.5,
+  },
+  subtitle: {
+    color: colors.mutedForeground,
+    fontSize: 13,
+    marginTop: 2,
+  },
+  addBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: radius.md,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 4,
+  },
+  addBtnText: {
+    color: '#0B1510',
+    fontSize: 24,
+    fontWeight: '700',
+    lineHeight: 26,
+  },
+  searchWrap: {
+    paddingHorizontal: spacing.lg,
+    marginBottom: spacing.sm,
+  },
+  searchInput: {
+    backgroundColor: colors.card,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    color: colors.foreground,
+    height: 44,
+    paddingHorizontal: spacing.md,
+    fontSize: 14,
+  },
+  tabsRow: {
+    flexDirection: 'row',
+    paddingHorizontal: spacing.lg,
+    gap: 8,
+    marginBottom: spacing.sm,
+  },
+  filterTab: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 10,
     backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  filterTabActive: {
+    backgroundColor: 'rgba(69,212,131,0.15)',
+    borderColor: colors.primary,
+  },
+  filterTabText: {
+    color: colors.mutedForeground,
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  filterTabTextActive: {
+    color: colors.primary,
+  },
+  list: {
+    paddingHorizontal: spacing.lg,
+    paddingBottom: 16,
+    gap: spacing.sm,
+  },
+  seedCard: {
+    backgroundColor: colors.card,
     borderRadius: radius.md,
     padding: spacing.md,
     borderWidth: 1,
@@ -70,21 +253,77 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.sm,
   },
-  flex: {
+  seedIconBox: {
+    width: 48,
+    height: 48,
+    backgroundColor: colors.surface,
+    borderRadius: radius.sm,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  seedEmoji: {
+    fontSize: 24,
+  },
+  seedInfo: {
     flex: 1,
   },
-  name: {
-    color: colors.text,
+  seedName: {
+    color: colors.foreground,
     fontWeight: '700',
-    fontSize: 16,
+    fontSize: 15,
   },
-  meta: {
-    color: colors.muted,
-    marginTop: 4,
-    fontSize: 13,
+  seedMeta: {
+    color: colors.mutedForeground,
+    marginTop: 3,
+    fontSize: 12,
   },
-  edit: {
-    color: colors.accent,
+  seedRight: {
+    alignItems: 'flex-end',
+    gap: 4,
+  },
+  badge: {
+    backgroundColor: 'rgba(76,168,255,0.12)',
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+  },
+  badgeText: {
+    color: colors.accentBlue,
+    fontSize: 10,
     fontWeight: '700',
+  },
+  badgeOnetime: {
+    backgroundColor: 'rgba(145,166,157,0.12)',
+  },
+  badgeOnetimeText: {
+    color: colors.mutedForeground,
+  },
+  editLabel: {
+    color: colors.mutedForeground,
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  empty: {
+    paddingVertical: 40,
+    alignItems: 'center',
+  },
+  emptyText: {
+    color: colors.mutedForeground,
+    fontSize: 15,
+  },
+  restoreBtn: {
+    marginTop: spacing.sm,
+    backgroundColor: colors.surface,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: colors.border,
+    minHeight: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  restoreBtnText: {
+    color: colors.mutedForeground,
+    fontWeight: '600',
+    fontSize: 14,
   },
 });

@@ -1,31 +1,40 @@
 export const colors = {
-  bg: '#101614',
-  surface: '#1A2320',
-  surfaceRaised: '#232E2A',
-  border: '#2E3C37',
-  text: '#F3F7F4',
-  muted: '#8A9A93',
-  accent: '#3DDC84',
-  accentDim: '#1F6B45',
-  readyBg: '#173528',
-  growing: '#E8C547',
-  danger: '#E85D5D',
-  dangerBg: '#3A201A',
-  input: '#121A18',
-  warningBg: '#3A3418',
-  warningText: '#F0D36A',
+  // Figma design system
+  bg: '#0d1715',
+  foreground: '#edf4ef',
+  primary: '#45d483',
+  accentBlue: '#4ca8ff',
+  card: '#14211e',
+  border: '#2a3c35',
+  muted: '#1c2b27',
+  mutedForeground: '#91a69d',
+  surface: '#1c2b27',
+  growing: '#e6c16a',
+  destruct: '#e96a6a',
+
+  // Legacy aliases for backward-compat
+  surfaceRaised: '#1c2b27',
+  text: '#edf4ef',
+  accent: '#45d483',
+  accentDim: '#1a4a30',
+  readyBg: '#0f2c1c',
+  danger: '#e96a6a',
+  dangerBg: '#2a1515',
+  input: '#1c2b27',
+  warningBg: '#2a2210',
+  warningText: '#e6c16a',
 };
 
 export const spacing = {
   xs: 6,
   sm: 10,
   md: 16,
-  lg: 24,
-  xl: 32,
+  lg: 20,
+  xl: 28,
 };
 
 export const radius = {
   sm: 8,
-  md: 12,
-  lg: 16,
+  md: 14,
+  lg: 24,
 };

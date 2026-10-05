@@ -26,7 +26,7 @@ export function Button({
       ]}
       {...rest}
     >
-      <Text style={[styles.label, variant === 'primary' && styles.labelPrimary]}>{label}</Text>
+      <Text style={[styles.label, styles[`label_${variant}` as keyof typeof styles] as object]}>{label}</Text>
     </Pressable>
   );
 }
@@ -35,15 +35,15 @@ const styles = StyleSheet.create({
   base: {
     minHeight: 44,
     paddingHorizontal: spacing.md,
-    borderRadius: radius.md,
+    borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
   },
   primary: {
-    backgroundColor: colors.accent,
+    backgroundColor: colors.primary,
   },
   secondary: {
-    backgroundColor: colors.surfaceRaised,
+    backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.border,
   },
@@ -51,19 +51,28 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
   },
   danger: {
-    backgroundColor: colors.dangerBg,
+    backgroundColor: 'rgba(233,106,106,0.10)',
     borderWidth: 1,
-    borderColor: colors.danger,
+    borderColor: colors.destruct,
   },
   pressed: {
     opacity: 0.75,
   },
   label: {
-    color: colors.text,
+    color: colors.foreground,
     fontWeight: '700',
     fontSize: 15,
   },
-  labelPrimary: {
+  label_primary: {
     color: '#0B1510',
+  },
+  label_secondary: {
+    color: colors.foreground,
+  },
+  label_ghost: {
+    color: colors.foreground,
+  },
+  label_danger: {
+    color: colors.destruct,
   },
 });

@@ -1,50 +1,45 @@
-import { Text, StyleSheet } from 'react-native';
-import { colors, radius } from '../theme';
+import { StyleSheet, Text, View } from 'react-native';
+import { colors } from '../theme';
 import type { HarvestStatus } from '../types';
 
 const labels: Record<HarvestStatus, string> = {
   growing: 'Growing',
-  ready: 'Ready',
+  ready: 'Ready to harvest',
   harvested: 'Harvested',
+};
+
+const dotColors: Record<HarvestStatus, string> = {
+  growing: colors.growing,
+  ready: colors.primary,
+  harvested: colors.mutedForeground,
 };
 
 export function StatusBadge({ status }: { status: HarvestStatus }) {
   return (
-    <Text
-      style={[
-        styles.badge,
-        status === 'ready' && styles.ready,
-        status === 'growing' && styles.growing,
-        status === 'harvested' && styles.harvested,
-      ]}
-    >
-      {labels[status]}
-    </Text>
+    <View style={styles.row}>
+      <View style={[styles.dot, { backgroundColor: dotColors[status] }]} />
+      <Text style={[styles.text, { color: dotColors[status] }]}>
+        {labels[status]}
+      </Text>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  badge: {
-    overflow: 'hidden',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: radius.sm,
-    fontSize: 12,
-    fontWeight: '700',
-    textTransform: 'uppercase',
-    letterSpacing: 0.4,
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
   },
-  ready: {
-    backgroundColor: colors.accentDim,
-    color: colors.accent,
+  dot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
   },
-  growing: {
-    backgroundColor: '#3A3418',
-    color: colors.growing,
-  },
-  harvested: {
-    backgroundColor: '#2A2818',
-    color: '#C9B96A',
+  text: {
+    fontSize: 11,
+    fontWeight: '600',
+    letterSpacing: 0.2,
   },
 });
 

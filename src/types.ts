@@ -23,6 +23,8 @@ export type Farm = {
   createdAt: string;
   /** Set when the user taps "Harvested" — clears when replanted. */
   harvestedAt: string | null;
+  /** Whether the farm is pinned to the top of the list. */
+  pinned?: boolean;
 };
 
 export type AppData = {
@@ -34,4 +36,5 @@ export type Route =
   | { name: "dashboard" }
   | { name: "farm-form"; farmId?: string }
   | { name: "seeds" }
-  | { name: "seed-form"; seedId?: string };
+  | { name: "seed-form"; seedId?: string }
+  | { name: "settings" };

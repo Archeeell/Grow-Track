@@ -10,7 +10,7 @@ export function Field({
     <View style={styles.wrap}>
       <Text style={styles.label}>{label}</Text>
       <TextInput
-        placeholderTextColor={colors.muted}
+        placeholderTextColor={colors.mutedForeground}
         style={styles.input}
         {...input}
       />
@@ -24,22 +24,22 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   label: {
-    color: colors.muted,
+    color: colors.mutedForeground,
     fontSize: 13,
     fontWeight: '600',
   },
   input: {
-    backgroundColor: colors.input,
+    backgroundColor: colors.muted,
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: radius.md,
-    color: colors.text,
-    minHeight: 46,
+    color: colors.foreground,
+    minHeight: 48,
     paddingHorizontal: spacing.md,
     fontSize: 16,
   },
   hint: {
-    color: colors.muted,
+    color: colors.mutedForeground,
     fontSize: 12,
   },
 });
