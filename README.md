@@ -2,8 +2,6 @@
 
 GrowTrack adalah aplikasi timer farm untuk Growtopia. Catat farm dan jenis seed, lihat perkiraan waktu panen, lalu kelola siklus tanam dan panen dari satu dashboard.
 
-> Informasi di README ini disusun dari implementasi pada branch `main`. Grow time seed bawaan mengikuti tabel aplikasi dan dapat berbeda dari kondisi game.
-
 ## Fitur
 
 - Tambah, edit, hapus, pin, dan pantau farm dari dashboard.
@@ -87,9 +85,7 @@ Pengingat dapat diaktifkan per farm dan mati secara default. Pada Android, aplik
 
 Belum ada screenshot aplikasi yang diverifikasi untuk README ini. Tambahkan gambar ke repository lalu tautkan, contohnya:
 
-```md
-![GrowTrack dashboard](assets/screenshots/dashboard.png)
-```
+<img width="394" height="853" alt="Designer" src="https://github.com/user-attachments/assets/01e648d2-6131-4e9c-a8c6-4ee1e06db32f" />
 
 ## Catatan dan batasan
 
