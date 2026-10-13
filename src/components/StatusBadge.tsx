@@ -1,11 +1,11 @@
 import { StyleSheet, Text, View } from 'react-native';
-import { colors } from '../theme';
+import { colors, fonts } from '../theme';
 import type { HarvestStatus } from '../types';
 
 const labels: Record<HarvestStatus, string> = {
-  growing: 'Growing',
-  ready: 'Ready to harvest',
-  harvested: 'Harvested',
+  growing: 'GROWING',
+  ready: 'READY',
+  harvested: 'HARVESTED',
 };
 
 const dotColors: Record<HarvestStatus, string> = {
@@ -32,14 +32,14 @@ const styles = StyleSheet.create({
     gap: 5,
   },
   dot: {
-    width: 7,
-    height: 7,
-    borderRadius: 4,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
   },
   text: {
     fontSize: 11,
-    fontWeight: '600',
-    letterSpacing: 0.2,
+    fontWeight: '700',
+    letterSpacing: 1,
+    fontFamily: fonts.bodyBold,
   },
 });
-
