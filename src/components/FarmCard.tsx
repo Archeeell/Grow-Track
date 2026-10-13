@@ -1,10 +1,9 @@
-import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Animated, Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useEffect, useRef } from 'react';
-import { colors, radius, spacing } from '../theme';
+import { colors, fonts, radius, spacing } from '../theme';
 import type { Farm, HarvestStatus } from '../types';
-import { formatCountdown, formatDateTime, getStatus } from '../utils/time';
-import { getSeedIcon } from '../data/seedIcons';
-import { StatusBadge } from './StatusBadge';
+import { formatCountdown, formatDateTime } from '../utils/time';
+import { getSeedIcon, getSeedItemImage } from '../data/seedIcons';
 
 type Props = {
   farm: Farm;
@@ -28,6 +27,18 @@ function growProgress(farm: Farm, now: number): number {
   return Math.min(1, Math.max(0, elapsed / totalMs));
 }
 
+const STATUS_LABELS: Record<HarvestStatus, string> = {
+  growing: 'GROWING',
+  ready: 'READY',
+  harvested: 'HARVESTED',
+};
+
+const STATUS_COLORS: Record<HarvestStatus, string> = {
+  growing: colors.growing,
+  ready: colors.primary,
+  harvested: colors.mutedForeground,
+};
+
 export function FarmCard({
   farm,
   status,
@@ -45,7 +56,7 @@ export function FarmCard({
   useEffect(() => {
     Animated.timing(progressAnim, {
       toValue: progress,
-      duration: 400,
+      duration: 1000,
       useNativeDriver: false,
     }).start();
   }, [progress, progressAnim]);
@@ -53,7 +64,9 @@ export function FarmCard({
   const isReady = status === 'ready';
   const isHarvested = status === 'harvested';
   const progressPct = Math.round(progress * 100);
-  const icon = getSeedIcon(farm.seedId);
+  const itemImage = getSeedItemImage(farm.seedId);
+  const emoji = getSeedIcon(farm.seedId);
+  const statusColor = STATUS_COLORS[status];
 
   return (
     <View
@@ -67,7 +80,15 @@ export function FarmCard({
         {/* Top row: icon + name + pin */}
         <View style={styles.topRow}>
           <View style={styles.iconBox}>
-            <Text style={styles.iconEmoji}>{icon}</Text>
+            {itemImage ? (
+              <Image
+                source={itemImage}
+                style={styles.itemImage}
+                resizeMode="contain"
+              />
+            ) : (
+              <Text style={styles.iconEmoji}>{emoji}</Text>
+            )}
           </View>
           <View style={styles.nameBlock}>
             <Text style={styles.name} numberOfLines={1}>
@@ -91,7 +112,12 @@ export function FarmCard({
 
         {/* Status + progress % row */}
         <View style={styles.statusRow}>
-          <StatusBadge status={status} />
+          <View style={styles.statusBadge}>
+            <View style={[styles.statusDot, { backgroundColor: statusColor }]} />
+            <Text style={[styles.statusLabel, { color: statusColor }]}>
+              {STATUS_LABELS[status]}
+            </Text>
+          </View>
           <Text style={styles.progressPct}>
             {isHarvested ? '—' : `${progressPct}%`}
           </Text>
@@ -162,22 +188,21 @@ export function FarmCard({
   );
 }
 
-// Keep old FarmRow export so existing import in DashboardScreen still resolves
-// (we'll update DashboardScreen separately)
+// Keep old FarmRow export alias
 export { FarmCard as FarmRow };
 
 const styles = StyleSheet.create({
   card: {
     backgroundColor: colors.card,
-    borderRadius: radius.md,
+    borderRadius: radius.lg,    // rounded-2xl
     padding: spacing.md,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.border + 'B3',  // border-border/70
     gap: spacing.sm,
   },
   cardReady: {
-    borderColor: 'rgba(69,212,131,0.5)',
-    backgroundColor: 'rgba(69,212,131,0.04)',
+    borderColor: colors.primary + '80',  // ~50% opacity
+    backgroundColor: colors.primary + '0A',  // ~4% opacity
   },
   cardHarvested: {
     opacity: 0.65,
@@ -191,10 +216,16 @@ const styles = StyleSheet.create({
   iconBox: {
     width: 48,
     height: 48,
-    backgroundColor: colors.surface,
-    borderRadius: radius.sm,
+    backgroundColor: colors.muted,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.border + '99',   // border-border/60
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  itemImage: {
+    width: 32,
+    height: 32,
   },
   iconEmoji: {
     fontSize: 26,
@@ -206,14 +237,20 @@ const styles = StyleSheet.create({
     color: colors.foreground,
     fontSize: 15,
     fontWeight: '700',
+    letterSpacing: 0.5,
+    fontFamily: fonts.bodyBold,
   },
   seedName: {
     color: colors.mutedForeground,
     fontSize: 13,
-    marginTop: 2,
+    marginTop: 4,
+    fontFamily: fonts.body,
   },
   pinBtn: {
-    padding: 4,
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   pinIcon: {
     fontSize: 18,
@@ -226,20 +263,38 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 6,
+    marginBottom: 8,
+    marginTop: 4,
+  },
+  statusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  statusDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  statusLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 1,
+    fontFamily: fonts.bodyBold,
   },
   progressPct: {
     color: colors.mutedForeground,
     fontSize: 11,
     fontWeight: '600',
-    letterSpacing: 0.2,
+    letterSpacing: 0.5,
+    fontFamily: fonts.bodySemiBold,
   },
   progressTrack: {
     height: 6,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.secondary,
     borderRadius: 3,
     overflow: 'hidden',
-    marginBottom: 8,
+    marginBottom: 12,
   },
   progressFill: {
     height: '100%',
@@ -258,7 +313,7 @@ const styles = StyleSheet.create({
     color: colors.foreground,
     fontSize: 20,
     fontWeight: '700',
-    fontVariant: ['tabular-nums'],
+    fontFamily: fonts.bodyBold,
     flex: 1,
   },
   countdownReady: {
@@ -272,6 +327,7 @@ const styles = StyleSheet.create({
     color: colors.mutedForeground,
     fontSize: 11,
     marginTop: 2,
+    fontFamily: fonts.body,
   },
   actions: {
     flexDirection: 'row',
@@ -280,7 +336,7 @@ const styles = StyleSheet.create({
   },
   actionBtn: {
     flex: 1,
-    minHeight: 36,
+    minHeight: 40,
     borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
@@ -293,26 +349,31 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
   },
   actionBtnSecondary: {
-    backgroundColor: colors.surface,
+    backgroundColor: colors.card,
     borderWidth: 1,
     borderColor: colors.border,
   },
   actionBtnGhost: {
     paddingVertical: 4,
+    minHeight: 40,
+    justifyContent: 'center',
   },
   actionBtnText: {
-    color: colors.foreground,
+    color: colors.mutedForeground,
     fontWeight: '600',
     fontSize: 13,
+    fontFamily: fonts.bodySemiBold,
   },
   actionBtnPrimaryText: {
-    color: '#0B1510',
+    color: colors.primaryForeground,
     fontWeight: '700',
     fontSize: 13,
+    fontFamily: fonts.bodyBold,
   },
   actionBtnGhostText: {
     color: colors.mutedForeground,
     fontWeight: '600',
     fontSize: 13,
+    fontFamily: fonts.bodySemiBold,
   },
 });
