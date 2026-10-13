@@ -1,5 +1,6 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { colors, spacing } from '../theme';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { colors, fonts, spacing } from '../theme';
 import type { Route } from '../types';
 
 type Tab = {
@@ -20,8 +21,10 @@ type Props = {
 };
 
 export function TabBar({ active, onNavigate }: Props) {
+  const insets = useSafeAreaInsets();
+
   return (
-    <View style={styles.bar}>
+    <View style={[styles.bar, { paddingBottom: Math.max(insets.bottom, spacing.xs) }]}>
       {TABS.map((tab) => {
         const isActive = active === tab.name;
         return (
@@ -38,6 +41,7 @@ export function TabBar({ active, onNavigate }: Props) {
             <Text style={[styles.label, isActive && styles.labelActive]}>
               {tab.label}
             </Text>
+            {isActive && <View style={styles.activeDot} />}
           </Pressable>
         );
       })}
@@ -51,8 +55,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.card,
     borderTopWidth: 1,
     borderTopColor: colors.border,
-    minHeight: 56,
-    paddingBottom: spacing.xs,
     paddingTop: spacing.xs,
   },
   tab: {
@@ -61,10 +63,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 2,
     paddingVertical: 4,
+    minHeight: 52,
   },
   icon: {
     fontSize: 20,
-    opacity: 0.5,
+    opacity: 0.45,
   },
   iconActive: {
     opacity: 1,
@@ -73,8 +76,16 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '600',
     color: colors.mutedForeground,
+    fontFamily: fonts.bodySemiBold,
   },
   labelActive: {
     color: colors.primary,
+  },
+  activeDot: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: colors.primary,
+    marginTop: 2,
   },
 });
