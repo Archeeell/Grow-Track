@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
   Alert,
+  Image,
   Platform,
   Pressable,
   ScrollView,
@@ -12,11 +13,11 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useStore } from '../store';
-import { colors, radius, spacing } from '../theme';
+import { colors, fonts, radius, spacing } from '../theme';
 import type { Farm } from '../types';
 import { ensureNotificationPermission } from '../notifications';
 import { confirmAction } from '../utils/confirm';
-import { getSeedIcon } from '../data/seedIcons';
+import { getSeedIcon, getSeedSeedImage } from '../data/seedIcons';
 import {
   addMinutes,
   formatDateTime,
@@ -37,7 +38,7 @@ export function FarmFormScreen({ farmId, onBack }: Props) {
   const [seedId, setSeedId] = useState<string | null>(
     existing?.seedId ?? seeds[0]?.id ?? null
   );
-  const [notify, setNotify] = useState(existing?.notificationsEnabled ?? false);
+  const [notify, setNotify] = useState(existing?.notificationsEnabled ?? true);
   const [error, setError] = useState<string | null>(null);
   const [seedSearch, setSeedSearch] = useState('');
 
@@ -205,45 +206,45 @@ export function FarmFormScreen({ farmId, onBack }: Props) {
       >
         {/* Farm name */}
         <View style={styles.fieldWrap}>
-          <Text style={styles.fieldLabel}>World / Farm name</Text>
+          <Text style={styles.fieldLabel}>World name</Text>
           <TextInput
             style={styles.input}
-            placeholder="WORLD NAME"
+            placeholder="e.g. ARCHELLGT"
             placeholderTextColor={colors.mutedForeground}
             value={name}
             onChangeText={setName}
             autoCorrect={false}
             autoCapitalize="characters"
+            maxLength={24}
           />
         </View>
 
         {/* Seed selector */}
-        <Text style={styles.sectionLabel}>Seed type</Text>
+        <Text style={styles.sectionLabel}>Seed</Text>
         <View style={styles.seedSearchWrap}>
           <TextInput
             style={styles.seedSearchInput}
-            placeholder="Search seeds…"
+            placeholder="Find a seed"
             placeholderTextColor={colors.mutedForeground}
             value={seedSearch}
             onChangeText={setSeedSearch}
           />
         </View>
         <View style={styles.seedGrid}>
-          <SeedChip
-            emoji="—"
-            label="Custom / manual"
-            selected={seedId === null}
-            onPress={() => handleSeedSelect(null)}
-          />
-          {filteredSeeds.map((seed) => (
-            <SeedChip
-              key={seed.id}
-              emoji={getSeedIcon(seed.id)}
-              label={seed.name}
-              selected={seedId === seed.id}
-              onPress={() => handleSeedSelect(seed.id)}
-            />
-          ))}
+          {filteredSeeds.map((seed) => {
+            const img = getSeedSeedImage(seed.id);
+            const emoji = getSeedIcon(seed.id);
+            return (
+              <SeedChip
+                key={seed.id}
+                image={img}
+                emoji={emoji}
+                label={seed.name}
+                selected={seedId === seed.id}
+                onPress={() => handleSeedSelect(seed.id)}
+              />
+            );
+          })}
         </View>
 
         {selectedSeed ? (
@@ -255,7 +256,7 @@ export function FarmFormScreen({ farmId, onBack }: Props) {
         )}
 
         {/* Duration */}
-        <Text style={styles.sectionLabel}>Time remaining until harvest</Text>
+        <Text style={styles.sectionLabel}>Grow duration</Text>
         <View style={styles.dhmRow}>
           {[
             { label: 'Days', value: remainDays, set: handleDayChange },
@@ -281,23 +282,27 @@ export function FarmFormScreen({ farmId, onBack }: Props) {
         <View style={styles.notifyRow}>
           <View style={styles.flex}>
             <Text style={styles.notifyTitle}>Harvest notification</Text>
-            <Text style={styles.hint}>Off by default. Works in the background on iOS/Android.</Text>
+            <Text style={styles.hint}>Get notified when this farm is ready.</Text>
           </View>
           <Switch
             value={notify}
             onValueChange={setNotify}
-            trackColor={{ false: colors.border, true: colors.accentDim }}
-            thumbColor={notify ? colors.primary : colors.mutedForeground}
+            trackColor={{ false: colors.border, true: colors.primary }}
+            thumbColor="#ffffff"
           />
         </View>
 
         {/* Preview card */}
         {previewReady ? (
           <View style={styles.previewCard}>
-            <Text style={styles.previewLabel}>⏱ ESTIMATED HARVEST</Text>
+            <View style={styles.previewLabelRow}>
+              <Text style={styles.previewLabel}>ESTIMATED HARVEST</Text>
+            </View>
             <Text style={styles.previewTime}>{formatDateTime(previewReady)}</Text>
             {selectedSeed && (
-              <Text style={styles.previewSeed}>{selectedSeed.name}</Text>
+              <Text style={styles.previewSeed}>
+                {selectedSeed.name} · {remainDays ? `${remainDays}d ` : ''}{remainHours ? `${remainHours}h ` : ''}{remainMinutes ? `${remainMinutes}m` : ''}
+              </Text>
             )}
           </View>
         ) : null}
@@ -310,7 +315,7 @@ export function FarmFormScreen({ farmId, onBack }: Props) {
           accessibilityRole="button"
         >
           <Text style={styles.saveBtnText}>
-            {existing ? 'Save changes' : 'Add farm'}
+            {existing ? 'Save changes' : 'Add Farm'}
           </Text>
         </Pressable>
 
@@ -325,11 +330,13 @@ export function FarmFormScreen({ farmId, onBack }: Props) {
 }
 
 function SeedChip({
+  image,
   emoji,
   label,
   selected,
   onPress,
 }: {
+  image: ReturnType<typeof getSeedSeedImage>;
   emoji: string;
   label: string;
   selected: boolean;
@@ -341,7 +348,13 @@ function SeedChip({
       onPress={onPress}
       style={[styles.seedChip, selected && styles.seedChipOn]}
     >
-      <Text style={styles.seedChipEmoji}>{emoji}</Text>
+      <View style={styles.seedChipIconWrap}>
+        {image ? (
+          <Image source={image} style={styles.seedChipImg} resizeMode="contain" />
+        ) : (
+          <Text style={styles.seedChipEmoji}>{emoji}</Text>
+        )}
+      </View>
       <Text style={[styles.seedChipText, selected && styles.seedChipTextOn]} numberOfLines={2}>
         {label}
       </Text>
@@ -364,27 +377,26 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.border,
   },
   closeBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: colors.surface,
+    width: 44,
+    height: 44,
     alignItems: 'center',
     justifyContent: 'center',
   },
   closeBtnText: {
     color: colors.mutedForeground,
-    fontSize: 16,
+    fontSize: 20,
     fontWeight: '700',
   },
   title: {
     flex: 1,
     textAlign: 'center',
     color: colors.foreground,
-    fontSize: 17,
-    fontWeight: '800',
+    fontSize: 27,
+    fontWeight: '600',
+    fontFamily: fonts.pixel,
   },
   headerSpacer: {
-    width: 36,
+    width: 44,
   },
   scroll: {
     padding: spacing.md,
@@ -395,39 +407,45 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   fieldLabel: {
-    color: colors.mutedForeground,
-    fontSize: 13,
-    fontWeight: '600',
+    color: colors.foreground,
+    fontSize: 14,
+    fontWeight: '500',
+    fontFamily: fonts.bodySemiBold,
   },
   input: {
     backgroundColor: colors.muted,
-    borderRadius: radius.md,
+    borderRadius: radius.lg,
     borderWidth: 1,
     borderColor: colors.border,
     color: colors.foreground,
     minHeight: 48,
     paddingHorizontal: spacing.md,
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '600',
     letterSpacing: 0.5,
+    fontFamily: fonts.bodySemiBold,
   },
   sectionLabel: {
     color: colors.foreground,
-    fontWeight: '700',
+    fontWeight: '500',
     fontSize: 14,
+    fontFamily: fonts.bodySemiBold,
   },
   seedSearchWrap: {
     marginBottom: 8,
+    position: 'relative',
   },
   seedSearchInput: {
     backgroundColor: colors.muted,
-    borderRadius: radius.md,
+    borderRadius: radius.lg,
     borderWidth: 1,
     borderColor: colors.border,
     color: colors.foreground,
-    height: 40,
+    height: 44,
     paddingHorizontal: spacing.md,
+    paddingLeft: 40,
     fontSize: 14,
+    fontFamily: fonts.body,
   },
   seedGrid: {
     flexDirection: 'row',
@@ -438,40 +456,52 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
     backgroundColor: colors.card,
-    borderRadius: radius.md,
-    paddingHorizontal: 10,
+    borderRadius: radius.lg,
+    paddingHorizontal: 8,
     paddingVertical: 8,
     minHeight: 56,
     width: '47%',
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 8,
   },
   seedChipOn: {
-    backgroundColor: 'rgba(69,212,131,0.10)',
+    backgroundColor: colors.primary + '1A',
     borderColor: colors.primary,
+  },
+  seedChipIconWrap: {
+    width: 24,
+    height: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  seedChipImg: {
+    width: 24,
+    height: 24,
   },
   seedChipEmoji: {
     fontSize: 20,
   },
   seedChipText: {
     color: colors.foreground,
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '600',
     flex: 1,
+    fontFamily: fonts.bodySemiBold,
   },
   seedChipTextOn: {
-    color: colors.primary,
+    color: colors.foreground,
   },
   checkmark: {
     color: colors.primary,
     fontWeight: '700',
-    fontSize: 14,
+    fontSize: 13,
   },
   hint: {
     color: colors.mutedForeground,
     fontSize: 12,
     lineHeight: 17,
+    fontFamily: fonts.body,
   },
   dhmRow: {
     flexDirection: 'row',
@@ -480,24 +510,26 @@ const styles = StyleSheet.create({
   dhmCell: {
     flex: 1,
     alignItems: 'center',
-    gap: 4,
+    gap: 8,
   },
   dhmInput: {
     backgroundColor: colors.muted,
-    borderRadius: radius.md,
+    borderRadius: radius.lg,
     borderWidth: 1,
     borderColor: colors.border,
     color: colors.foreground,
-    height: 64,
+    height: 56,
     width: '100%',
-    fontSize: 28,
+    fontSize: 20,
     fontWeight: '700',
     textAlign: 'center',
+    fontFamily: fonts.bodyBold,
   },
   dhmLabel: {
     color: colors.mutedForeground,
     fontSize: 12,
     fontWeight: '600',
+    fontFamily: fonts.bodySemiBold,
   },
   flex: {
     flex: 1,
@@ -506,57 +538,67 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,
-    backgroundColor: colors.card,
-    borderRadius: radius.md,
-    padding: spacing.md,
-    borderWidth: 1,
-    borderColor: colors.border,
+    paddingVertical: spacing.sm,
   },
   notifyTitle: {
     color: colors.foreground,
-    fontWeight: '700',
+    fontWeight: '500',
+    fontSize: 14,
+    fontFamily: fonts.bodySemiBold,
   },
   previewCard: {
     borderWidth: 1,
-    borderColor: colors.accentBlue,
-    backgroundColor: 'rgba(76,168,255,0.05)',
-    borderRadius: radius.md,
-    padding: spacing.sm,
-    gap: 2,
+    borderColor: colors.accentBlue + '33',
+    backgroundColor: colors.accentBlue + '0D',
+    borderRadius: radius.lg,
+    padding: spacing.md,
+    gap: 4,
+  },
+  previewLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
   previewLabel: {
     color: colors.accentBlue,
     fontSize: 10,
     fontWeight: '700',
-    letterSpacing: 0.8,
+    letterSpacing: 1.2,
+    fontFamily: fonts.bodyBold,
   },
   previewTime: {
     color: colors.foreground,
-    fontSize: 16,
-    fontWeight: '700',
+    fontSize: 14,
+    fontWeight: '600',
+    marginTop: 8,
+    fontFamily: fonts.bodySemiBold,
   },
   previewSeed: {
     color: colors.mutedForeground,
     fontSize: 12,
+    marginTop: 4,
+    fontFamily: fonts.body,
   },
   error: {
     color: colors.destruct,
     fontSize: 13,
+    fontFamily: fonts.body,
   },
   saveBtn: {
     backgroundColor: colors.primary,
     borderRadius: 10,
-    minHeight: 48,
+    minHeight: 44,
     alignItems: 'center',
     justifyContent: 'center',
   },
   saveBtnText: {
-    color: '#0B1510',
+    color: colors.primaryForeground,
     fontWeight: '700',
-    fontSize: 16,
+    fontSize: 14,
+    fontFamily: fonts.bodyBold,
   },
   deleteBtn: {
-    backgroundColor: 'rgba(233,106,106,0.10)',
+    backgroundColor: colors.destruct + '1A',
     borderWidth: 1,
     borderColor: colors.destruct,
     borderRadius: 10,
@@ -567,6 +609,7 @@ const styles = StyleSheet.create({
   deleteBtnText: {
     color: colors.destruct,
     fontWeight: '700',
-    fontSize: 15,
+    fontSize: 14,
+    fontFamily: fonts.bodyBold,
   },
 });
