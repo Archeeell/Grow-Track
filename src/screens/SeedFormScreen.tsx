@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useStore } from '../store';
-import { colors, radius, spacing } from '../theme';
+import { colors, fonts, radius, spacing } from '../theme';
 import { confirmAction } from '../utils/confirm';
 import { minutesToDHM, parseNonNegInt } from '../utils/time';
 
@@ -177,8 +177,9 @@ const styles = StyleSheet.create({
     flex: 1,
     textAlign: 'center',
     color: colors.foreground,
-    fontSize: 17,
-    fontWeight: '800',
+    fontSize: 27,
+    fontWeight: '600',
+    fontFamily: fonts.pixel,
   },
   headerSpacer: {
     width: 36,
@@ -198,13 +199,14 @@ const styles = StyleSheet.create({
   },
   input: {
     backgroundColor: colors.muted,
-    borderRadius: radius.md,
+    borderRadius: radius.lg,
     borderWidth: 1,
     borderColor: colors.border,
     color: colors.foreground,
     minHeight: 48,
     paddingHorizontal: spacing.md,
     fontSize: 16,
+    fontFamily: fonts.bodySemiBold,
   },
   sectionLabel: {
     color: colors.foreground,
@@ -249,9 +251,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   saveBtnText: {
-    color: '#0B1510',
+    color: colors.primaryForeground,
     fontWeight: '700',
     fontSize: 16,
+    fontFamily: fonts.bodyBold,
   },
   deleteBtn: {
     backgroundColor: 'rgba(233,106,106,0.10)',
