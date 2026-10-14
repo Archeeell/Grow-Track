@@ -15,7 +15,7 @@ import { FarmCard } from '../components/FarmCard';
 import { TabBar } from '../components/TabBar';
 import { useNow } from '../hooks/useNow';
 import { useStore } from '../store';
-import { colors, radius, spacing } from '../theme';
+import { colors, fonts, radius, spacing } from '../theme';
 import type { Farm, HarvestStatus, Route, Seed } from '../types';
 import { confirmAction } from '../utils/confirm';
 import {
@@ -43,7 +43,7 @@ type ActionModal =
   | { type: 'swap'; farm: Farm; seed: Seed | undefined }
   | { type: 'replant'; farm: Farm; seed: Seed | undefined };
 
-type FilterStatus = 'all' | HarvestStatus;
+type FilterStatus = 'all' | HarvestStatus | 'pinned';
 type SortMode = 'recommended' | 'name' | 'time';
 
 function getHour(): string {
@@ -53,26 +53,19 @@ function getHour(): string {
   return 'evening';
 }
 
-function StatusFilterBtn({
-  label,
-  active,
-  onPress,
-}: {
-  label: string;
-  active: boolean;
-  onPress: () => void;
-}) {
-  return (
-    <Pressable
-      onPress={onPress}
-      style={[styles.filterBtn, active && styles.filterBtnActive]}
-    >
-      <Text style={[styles.filterBtnText, active && styles.filterBtnTextActive]}>
-        {label}
-      </Text>
-    </Pressable>
-  );
+function padStat(n: number): string {
+  return n.toString().padStart(2, '0');
 }
+
+const SECTION_LABELS: Record<HarvestStatus, string> = {
+  ready: 'READY',
+  growing: 'GROWING',
+  harvested: 'HARVESTED',
+};
+
+type ListItem =
+  | { type: 'section'; status: HarvestStatus; count: number }
+  | { type: 'farm'; farm: Farm; status: HarvestStatus };
 
 export function DashboardScreen({
   onAddFarm,
@@ -86,7 +79,6 @@ export function DashboardScreen({
 
   const [modal, setModal] = useState<ActionModal | null>(null);
   const [filterStatus, setFilterStatus] = useState<FilterStatus>('all');
-  const [sortMode] = useState<SortMode>('recommended');
   const [showSearch, setShowSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -100,8 +92,10 @@ export function DashboardScreen({
   const sorted = useMemo(() => {
     let list = [...farms];
 
-    // Filter by status
-    if (filterStatus !== 'all') {
+    // Filter by status / pinned
+    if (filterStatus === 'pinned') {
+      list = list.filter((f) => f.pinned);
+    } else if (filterStatus !== 'all') {
       list = list.filter(
         (f) => getStatus(f.readyAt, now, f.harvestedAt) === filterStatus
       );
@@ -123,13 +117,6 @@ export function DashboardScreen({
       if ((b.pinned ? 1 : 0) !== (a.pinned ? 1 : 0)) {
         return (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0);
       }
-      if (sortMode === 'name') {
-        return a.name.localeCompare(b.name);
-      }
-      if (sortMode === 'time') {
-        return new Date(a.readyAt).getTime() - new Date(b.readyAt).getTime();
-      }
-      // recommended: status rank, then time
       const sa = getStatus(a.readyAt, now, a.harvestedAt);
       const sb = getStatus(b.readyAt, now, b.harvestedAt);
       if (rank[sa] !== rank[sb]) return rank[sa] - rank[sb];
@@ -137,7 +124,29 @@ export function DashboardScreen({
     });
 
     return list;
-  }, [farms, now, filterStatus, searchQuery, sortMode]);
+  }, [farms, now, filterStatus, searchQuery]);
+
+  // Build flat list with section headers
+  const listData = useMemo((): ListItem[] => {
+    const groups: Partial<Record<HarvestStatus, Farm[]>> = {};
+    for (const farm of sorted) {
+      const s = getStatus(farm.readyAt, now, farm.harvestedAt);
+      if (!groups[s]) groups[s] = [];
+      groups[s]!.push(farm);
+    }
+
+    const order: HarvestStatus[] = ['ready', 'growing', 'harvested'];
+    const items: ListItem[] = [];
+    for (const status of order) {
+      const groupFarms = groups[status];
+      if (!groupFarms || groupFarms.length === 0) continue;
+      items.push({ type: 'section', status, count: groupFarms.length });
+      for (const farm of groupFarms) {
+        items.push({ type: 'farm', farm, status });
+      }
+    }
+    return items;
+  }, [sorted, now]);
 
   const totalFarms = farms.length;
   const readyCount = farms.filter(
@@ -230,6 +239,32 @@ export function DashboardScreen({
     void updateFarm(farm.id, { pinned: !farm.pinned });
   };
 
+  const renderItem = ({ item }: { item: ListItem }) => {
+    if (item.type === 'section') {
+      return (
+        <View style={styles.sectionHeader}>
+          <Text style={[styles.sectionLabel, { color: STATUS_COLORS[item.status] }]}>
+            {SECTION_LABELS[item.status]}
+          </Text>
+          <Text style={styles.sectionCount}>· {item.count}</Text>
+        </View>
+      );
+    }
+    return (
+      <FarmCard
+        farm={item.farm}
+        now={now}
+        status={item.status}
+        onPress={() => onEditFarm(item.farm.id)}
+        onReset={() => confirmReset(item.farm)}
+        onSwap={() => openSwap(item.farm)}
+        onHarvested={() => confirmHarvest(item.farm)}
+        onReplanted={() => openReplant(item.farm)}
+        onPin={() => togglePin(item.farm)}
+      />
+    );
+  };
+
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
       {/* ── Header ─────────────────────────────────────────────────────── */}
@@ -255,7 +290,10 @@ export function DashboardScreen({
         <Text style={styles.farmSummary}>
           {totalFarms === 0
             ? 'No farms yet'
-            : `${totalFarms} farm${totalFarms !== 1 ? 's' : ''} · ${readyCount} ready to harvest`}
+            : `${totalFarms} farm${totalFarms !== 1 ? 's' : ''} · `}
+          {totalFarms > 0 && (
+            <Text style={{ color: colors.primary }}>{readyCount} ready to harvest</Text>
+          )}
         </Text>
       </View>
 
@@ -263,38 +301,40 @@ export function DashboardScreen({
       <View style={styles.statsRow}>
         <Pressable
           style={styles.statCell}
-          onPress={() =>
-            setFilterStatus(filterStatus === 'all' ? 'all' : 'all')
-          }
+          onPress={() => setFilterStatus('all')}
         >
-          <Text style={styles.statIcon}>🌱</Text>
-          <Text style={styles.statLabel}>Total</Text>
-          <Text style={styles.statNum}>{totalFarms}</Text>
-        </Pressable>
-        <View style={styles.statDivider} />
-        <Pressable
-          style={styles.statCell}
-          onPress={() =>
-            setFilterStatus((p) => (p === 'ready' ? 'all' : 'ready'))
-          }
-        >
-          <Text style={styles.statIcon}>✅</Text>
-          <Text style={styles.statLabel}>Ready</Text>
-          <Text style={[styles.statNum, { color: colors.primary }]}>
-            {readyCount}
+          <View style={styles.statLabelRow}>
+            <Text style={[styles.statIcon, { color: colors.accentBlue }]}>🌱</Text>
+            <Text style={[styles.statCellLabel, { color: colors.accentBlue }]}>Total farms</Text>
+          </View>
+          <Text style={[styles.statNum, { color: colors.foreground }]}>
+            {padStat(totalFarms)}
           </Text>
         </Pressable>
         <View style={styles.statDivider} />
         <Pressable
           style={styles.statCell}
-          onPress={() =>
-            setFilterStatus((p) => (p === 'growing' ? 'all' : 'growing'))
-          }
+          onPress={() => setFilterStatus((p) => (p === 'ready' ? 'all' : 'ready'))}
         >
-          <Text style={styles.statIcon}>⏱️</Text>
-          <Text style={styles.statLabel}>Growing</Text>
-          <Text style={[styles.statNum, { color: colors.growing }]}>
-            {growingCount}
+          <View style={styles.statLabelRow}>
+            <Text style={[styles.statIcon, { color: colors.primary }]}>✅</Text>
+            <Text style={[styles.statCellLabel, { color: colors.primary }]}>Ready</Text>
+          </View>
+          <Text style={[styles.statNum, { color: colors.foreground }]}>
+            {padStat(readyCount)}
+          </Text>
+        </Pressable>
+        <View style={styles.statDivider} />
+        <Pressable
+          style={styles.statCell}
+          onPress={() => setFilterStatus((p) => (p === 'growing' ? 'all' : 'growing'))}
+        >
+          <View style={styles.statLabelRow}>
+            <Text style={[styles.statIcon, { color: colors.growing }]}>⏱️</Text>
+            <Text style={[styles.statCellLabel, { color: colors.growing }]}>Growing</Text>
+          </View>
+          <Text style={[styles.statNum, { color: colors.foreground }]}>
+            {padStat(growingCount)}
           </Text>
         </Pressable>
       </View>
@@ -302,21 +342,22 @@ export function DashboardScreen({
       {/* ── Toolbar ─────────────────────────────────────────────────────── */}
       <View style={styles.toolbar}>
         <View style={styles.filterRow}>
-          <StatusFilterBtn
-            label="All"
-            active={filterStatus === 'all'}
+          <Pressable
+            style={[styles.filterBtn, filterStatus === 'all' && styles.filterBtnActive]}
             onPress={() => setFilterStatus('all')}
-          />
-          <StatusFilterBtn
-            label="Growing"
-            active={filterStatus === 'growing'}
-            onPress={() => setFilterStatus('growing')}
-          />
-          <StatusFilterBtn
-            label="Ready"
-            active={filterStatus === 'ready'}
-            onPress={() => setFilterStatus('ready')}
-          />
+          >
+            <Text style={[styles.filterBtnText, filterStatus === 'all' && styles.filterBtnTextActive]}>
+              All farms
+            </Text>
+          </Pressable>
+          <Pressable
+            style={[styles.filterBtn, filterStatus === 'pinned' && styles.filterBtnActive]}
+            onPress={() => setFilterStatus((p) => (p === 'pinned' ? 'all' : 'pinned'))}
+          >
+            <Text style={[styles.filterBtnText, filterStatus === 'pinned' && styles.filterBtnTextActive]}>
+              ⭐ Pinned
+            </Text>
+          </Pressable>
         </View>
         <View style={styles.toolbarRight}>
           <Pressable
@@ -336,7 +377,7 @@ export function DashboardScreen({
             accessibilityRole="button"
             accessibilityLabel="Add farm"
           >
-            <Text style={styles.addBtnText}>+ Add</Text>
+            <Text style={styles.addBtnText}>+ Add farm</Text>
           </Pressable>
         </View>
       </View>
@@ -357,8 +398,10 @@ export function DashboardScreen({
 
       {/* ── Farm List ─────────────────────────────────────────────────────── */}
       <FlatList
-        data={sorted}
-        keyExtractor={(item) => item.id}
+        data={listData}
+        keyExtractor={(item, idx) =>
+          item.type === 'section' ? `section-${item.status}` : `farm-${item.farm.id}`
+        }
         contentContainerStyle={styles.list}
         ListEmptyComponent={
           <View style={styles.empty}>
@@ -370,21 +413,12 @@ export function DashboardScreen({
             <Pressable style={styles.emptyBtn} onPress={onAddFarm}>
               <Text style={styles.emptyBtnText}>+ Add your first farm</Text>
             </Pressable>
+            <Text style={styles.emptyHint}>
+              Your timers keep growing, even when you're away.
+            </Text>
           </View>
         }
-        renderItem={({ item }) => (
-          <FarmCard
-            farm={item}
-            now={now}
-            status={getStatus(item.readyAt, now, item.harvestedAt)}
-            onPress={() => onEditFarm(item.id)}
-            onReset={() => confirmReset(item)}
-            onSwap={() => openSwap(item)}
-            onHarvested={() => confirmHarvest(item)}
-            onReplanted={() => openReplant(item)}
-            onPin={() => togglePin(item)}
-          />
-        )}
+        renderItem={renderItem}
       />
 
       {/* ── Bottom Tab Bar ───────────────────────────────────────────────── */}
@@ -526,6 +560,12 @@ export function DashboardScreen({
   );
 }
 
+const STATUS_COLORS: Record<HarvestStatus, string> = {
+  ready: colors.primary,
+  growing: colors.growing,
+  harvested: colors.mutedForeground,
+};
+
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
@@ -543,29 +583,30 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 4,
+    marginBottom: 6,
   },
   logoRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 8,
   },
   logoEmoji: {
-    fontSize: 22,
+    fontSize: 21,
+    color: colors.primary,
   },
   logoText: {
     color: colors.foreground,
-    fontSize: 22,
-    fontWeight: '900',
-    letterSpacing: -0.5,
+    fontSize: 23,
+    fontWeight: '600',
+    fontFamily: fonts.pixel,
   },
   logoDot: {
-    color: colors.primary,
+    color: colors.accentBlue,
   },
   settingsBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: radius.sm,
+    width: 40,
+    height: 40,
+    borderRadius: radius.md,
     backgroundColor: colors.card,
     borderWidth: 1,
     borderColor: colors.border,
@@ -578,18 +619,21 @@ const styles = StyleSheet.create({
   subtitle: {
     color: colors.mutedForeground,
     fontSize: 12,
-    marginBottom: 6,
+    marginBottom: 4,
+    fontFamily: fonts.body,
   },
   greeting: {
     color: colors.foreground,
-    fontSize: 26,
-    fontWeight: '800',
-    letterSpacing: -0.5,
+    fontSize: 28,
+    fontWeight: '600',
+    fontFamily: fonts.pixel,
+    lineHeight: 34,
   },
   farmSummary: {
     color: colors.mutedForeground,
     fontSize: 12,
-    marginTop: 2,
+    marginTop: 6,
+    fontFamily: fonts.body,
   },
 
   // ── Stats ────────────────────────────────────────────────────────────────
@@ -597,35 +641,43 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     marginHorizontal: spacing.lg,
     backgroundColor: colors.card,
-    borderRadius: radius.md,
+    borderRadius: radius.lg,
     borderWidth: 1,
     borderColor: colors.border,
     marginBottom: spacing.sm,
-    paddingVertical: spacing.md,
+    marginTop: spacing.sm,
   },
   statCell: {
     flex: 1,
+    paddingVertical: 16,
+    paddingHorizontal: spacing.md,
+    minHeight: 44,
+  },
+  statLabelRow: {
+    flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 6,
+    marginBottom: 4,
+  },
+  statIcon: {
+    fontSize: 14,
+  },
+  statCellLabel: {
+    fontSize: 10,
+    fontWeight: '700',
+    fontFamily: fonts.bodyBold,
+    letterSpacing: 0.5,
   },
   statDivider: {
     width: 1,
     backgroundColor: colors.border,
     alignSelf: 'stretch',
   },
-  statIcon: {
-    fontSize: 18,
-  },
-  statLabel: {
-    color: colors.mutedForeground,
-    fontSize: 11,
-    fontWeight: '600',
-  },
   statNum: {
-    color: colors.foreground,
-    fontSize: 28,
-    fontWeight: '800',
-    lineHeight: 32,
+    fontSize: 31,
+    fontFamily: fonts.pixel,
+    lineHeight: 36,
+    letterSpacing: 1,
   },
 
   // ── Toolbar ──────────────────────────────────────────────────────────────
@@ -638,56 +690,59 @@ const styles = StyleSheet.create({
   },
   filterRow: {
     flexDirection: 'row',
-    gap: 6,
+    gap: 4,
     flex: 1,
   },
   filterBtn: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 0,
+    minHeight: 44,
     borderRadius: 10,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
+    backgroundColor: colors.secondary,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   filterBtnActive: {
-    backgroundColor: 'rgba(69,212,131,0.15)',
+    backgroundColor: colors.secondary,
+    borderWidth: 1,
     borderColor: colors.primary,
   },
   filterBtnText: {
-    color: colors.mutedForeground,
+    color: colors.foreground,
     fontSize: 12,
     fontWeight: '600',
+    fontFamily: fonts.bodySemiBold,
   },
   filterBtnTextActive: {
     color: colors.primary,
   },
   toolbarRight: {
     flexDirection: 'row',
-    gap: 6,
+    gap: 4,
+    alignItems: 'center',
   },
   iconBtn: {
-    width: 36,
-    height: 36,
+    width: 44,
+    height: 44,
     borderRadius: 10,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
     alignItems: 'center',
     justifyContent: 'center',
   },
   iconBtnText: {
-    fontSize: 16,
+    fontSize: 17,
+    color: colors.mutedForeground,
   },
   addBtn: {
     width: 'auto',
     paddingHorizontal: 12,
     backgroundColor: colors.primary,
-    borderColor: colors.primary,
+    borderRadius: 10,
   },
   addBtnText: {
-    color: '#0B1510',
-    fontWeight: '700',
-    fontSize: 13,
+    color: colors.primaryForeground,
+    fontWeight: '600',
+    fontSize: 12,
+    fontFamily: fonts.bodySemiBold,
   },
 
   // ── Search ───────────────────────────────────────────────────────────────
@@ -697,13 +752,36 @@ const styles = StyleSheet.create({
   },
   searchInput: {
     backgroundColor: colors.card,
-    borderRadius: radius.md,
+    borderRadius: radius.lg,
     borderWidth: 1,
     borderColor: colors.border,
     color: colors.foreground,
     paddingHorizontal: spacing.md,
     paddingVertical: 10,
     fontSize: 14,
+    fontFamily: fonts.body,
+  },
+
+  // ── Section headers ────────────────────────────────────────────────────
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: spacing.sm,
+    marginTop: 4,
+  },
+  sectionLabel: {
+    fontSize: 10,
+    fontWeight: '700',
+    fontFamily: fonts.bodyBold,
+    letterSpacing: 1.2,
+  },
+  sectionCount: {
+    fontSize: 10,
+    color: colors.mutedForeground,
+    fontWeight: '600',
+    fontFamily: fonts.bodySemiBold,
+    opacity: 0.6,
   },
 
   // ── Farm List ────────────────────────────────────────────────────────────
@@ -711,6 +789,7 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     paddingHorizontal: spacing.lg,
     paddingBottom: 16,
+    paddingTop: 8,
   },
 
   // ── Empty ────────────────────────────────────────────────────────────────
@@ -727,6 +806,7 @@ const styles = StyleSheet.create({
     color: colors.foreground,
     fontSize: 20,
     fontWeight: '700',
+    fontFamily: fonts.bodyBold,
   },
   emptyBody: {
     color: colors.mutedForeground,
@@ -734,6 +814,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 20,
     paddingHorizontal: spacing.xl,
+    fontFamily: fonts.body,
   },
   emptyBtn: {
     marginTop: spacing.sm,
@@ -743,9 +824,16 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   emptyBtnText: {
-    color: '#0B1510',
+    color: colors.primaryForeground,
     fontWeight: '700',
     fontSize: 15,
+    fontFamily: fonts.bodyBold,
+  },
+  emptyHint: {
+    color: colors.mutedForeground,
+    fontSize: 12,
+    fontFamily: fonts.body,
+    marginTop: 4,
   },
 
   // ── Modal / Sheet ─────────────────────────────────────────────────────────
@@ -756,17 +844,17 @@ const styles = StyleSheet.create({
   },
   sheet: {
     backgroundColor: colors.bg,
-    borderTopLeftRadius: radius.lg,
-    borderTopRightRadius: radius.lg,
+    borderTopLeftRadius: radius.xl,
+    borderTopRightRadius: radius.xl,
     padding: spacing.lg,
     gap: spacing.sm,
     borderTopWidth: 1,
     borderColor: colors.border,
   },
   handle: {
-    width: 40,
+    width: 36,
     height: 4,
-    backgroundColor: colors.border,
+    backgroundColor: colors.mutedForeground + '66',
     borderRadius: 2,
     alignSelf: 'center',
     marginBottom: spacing.sm,
@@ -778,26 +866,26 @@ const styles = StyleSheet.create({
   },
   sheetTitle: {
     color: colors.foreground,
-    fontSize: 18,
-    fontWeight: '800',
+    fontSize: 27,
+    fontWeight: '600',
+    fontFamily: fonts.pixel,
   },
   closeBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: colors.surface,
+    width: 44,
+    height: 44,
     alignItems: 'center',
     justifyContent: 'center',
   },
   closeBtnText: {
     color: colors.mutedForeground,
-    fontSize: 14,
+    fontSize: 20,
     fontWeight: '700',
   },
   sheetHint: {
     color: colors.mutedForeground,
     fontSize: 13,
     lineHeight: 18,
+    fontFamily: fonts.body,
   },
   seedPill: {
     flexDirection: 'row',
@@ -813,28 +901,33 @@ const styles = StyleSheet.create({
     color: colors.mutedForeground,
     fontSize: 13,
     fontWeight: '600',
+    fontFamily: fonts.bodySemiBold,
   },
   seedPillValue: {
     color: colors.primary,
     fontSize: 13,
     fontWeight: '700',
     flex: 1,
+    fontFamily: fonts.bodyBold,
   },
   fieldLabel: {
     color: colors.mutedForeground,
     fontSize: 13,
     fontWeight: '600',
     marginTop: spacing.xs,
+    fontFamily: fonts.bodySemiBold,
   },
   input: {
     backgroundColor: colors.muted,
-    borderRadius: radius.md,
+    borderRadius: radius.lg,
     borderWidth: 1,
     borderColor: colors.border,
     color: colors.foreground,
     fontSize: 15,
     paddingHorizontal: spacing.md,
     paddingVertical: 10,
+    minHeight: 48,
+    fontFamily: fonts.bodySemiBold,
   },
   dhmRow: {
     flexDirection: 'row',
@@ -848,33 +941,38 @@ const styles = StyleSheet.create({
     color: colors.mutedForeground,
     fontSize: 12,
     fontWeight: '600',
+    fontFamily: fonts.bodySemiBold,
   },
   previewCard: {
     borderWidth: 1,
-    borderColor: colors.accentBlue,
-    backgroundColor: 'rgba(76,168,255,0.05)',
-    borderRadius: radius.md,
-    padding: spacing.sm,
-    gap: 2,
+    borderColor: colors.accentBlue + '33',
+    backgroundColor: colors.accentBlue + '0D',
+    borderRadius: radius.lg,
+    padding: spacing.md,
+    gap: 4,
   },
   previewLabel: {
     color: colors.accentBlue,
     fontSize: 10,
     fontWeight: '700',
-    letterSpacing: 0.8,
+    letterSpacing: 1.2,
+    fontFamily: fonts.bodyBold,
   },
   previewTime: {
     color: colors.foreground,
-    fontSize: 16,
-    fontWeight: '700',
+    fontSize: 14,
+    fontWeight: '600',
+    fontFamily: fonts.bodySemiBold,
   },
   previewSeed: {
     color: colors.mutedForeground,
     fontSize: 12,
+    fontFamily: fonts.body,
   },
   modalError: {
     color: colors.destruct,
     fontSize: 13,
+    fontFamily: fonts.body,
   },
   sheetActions: {
     flexDirection: 'row',
@@ -897,13 +995,15 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
   },
   sheetBtnPrimaryText: {
-    color: '#0B1510',
+    color: colors.primaryForeground,
     fontWeight: '700',
     fontSize: 15,
+    fontFamily: fonts.bodyBold,
   },
   sheetBtnSecondaryText: {
     color: colors.foreground,
     fontWeight: '700',
     fontSize: 15,
+    fontFamily: fonts.bodyBold,
   },
 });
