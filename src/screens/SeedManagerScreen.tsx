@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import {
+  Image,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -10,8 +11,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { TabBar } from '../components/TabBar';
 import { useStore } from '../store';
-import { colors, radius, spacing } from '../theme';
-import { getSeedIcon } from '../data/seedIcons';
+import { colors, fonts, radius, spacing } from '../theme';
+import { getSeedIcon, getSeedItemImage } from '../data/seedIcons';
 import { formatGrowTime } from '../utils/time';
 import type { Route } from '../types';
 
@@ -65,7 +66,7 @@ export function SeedManagerScreen({ onBack, onAdd, onEdit, onNavigate }: Props) 
       <View style={styles.searchWrap}>
         <TextInput
           style={styles.searchInput}
-          placeholder="🔍 Search seeds…"
+          placeholder="Search seeds…"
           placeholderTextColor={colors.mutedForeground}
           value={search}
           onChangeText={setSearch}
@@ -103,41 +104,49 @@ export function SeedManagerScreen({ onBack, onAdd, onEdit, onNavigate }: Props) 
         contentContainerStyle={styles.list}
         keyboardShouldPersistTaps="handled"
       >
-        {filtered.map((seed) => (
-          <Pressable
-            key={seed.id}
-            accessibilityRole="button"
-            onPress={() => onEdit(seed.id)}
-            style={styles.seedCard}
-          >
-            <View style={styles.seedIconBox}>
-              <Text style={styles.seedEmoji}>{getSeedIcon(seed.id)}</Text>
-            </View>
-            <View style={styles.seedInfo}>
-              <Text style={styles.seedName}>{seed.name}</Text>
-              <Text style={styles.seedMeta}>
-                Grow {formatGrowTime(seed.growTimeMinutes)}
-                {seed.reharvestIntervalMinutes != null
-                  ? ` · Re-harvest ${formatGrowTime(seed.reharvestIntervalMinutes)}`
-                  : ''}
-              </Text>
-            </View>
-            <View style={styles.seedRight}>
-              {seed.reharvestIntervalMinutes != null ? (
-                <View style={styles.badge}>
-                  <Text style={styles.badgeText}>Re-harvest</Text>
-                </View>
-              ) : (
-                <View style={[styles.badge, styles.badgeOnetime]}>
-                  <Text style={[styles.badgeText, styles.badgeOnetimeText]}>
-                    One-time
-                  </Text>
-                </View>
-              )}
-              <Text style={styles.editLabel}>Edit</Text>
-            </View>
-          </Pressable>
-        ))}
+        {filtered.map((seed) => {
+          const img = getSeedItemImage(seed.id);
+          const emoji = getSeedIcon(seed.id);
+          return (
+            <Pressable
+              key={seed.id}
+              accessibilityRole="button"
+              onPress={() => onEdit(seed.id)}
+              style={styles.seedCard}
+            >
+              <View style={styles.seedIconBox}>
+                {img ? (
+                  <Image source={img} style={styles.seedItemImg} resizeMode="contain" />
+                ) : (
+                  <Text style={styles.seedEmoji}>{emoji}</Text>
+                )}
+              </View>
+              <View style={styles.seedInfo}>
+                <Text style={styles.seedName}>{seed.name}</Text>
+                <Text style={styles.seedMeta}>
+                  {formatGrowTime(seed.growTimeMinutes)}
+                </Text>
+                {seed.reharvestIntervalMinutes != null ? (
+                  <Text style={styles.reharvest}>↻ Re-harvest</Text>
+                ) : null}
+              </View>
+              <View style={styles.seedRight}>
+                {seed.reharvestIntervalMinutes != null ? (
+                  <View style={styles.badge}>
+                    <Text style={styles.badgeText}>Re-harvest</Text>
+                  </View>
+                ) : (
+                  <View style={[styles.badge, styles.badgeOnetime]}>
+                    <Text style={[styles.badgeText, styles.badgeOnetimeText]}>
+                      One-time
+                    </Text>
+                  </View>
+                )}
+                <Text style={styles.editLabel}>Edit</Text>
+              </View>
+            </Pressable>
+          );
+        })}
 
         {filtered.length === 0 && (
           <View style={styles.empty}>
@@ -145,12 +154,16 @@ export function SeedManagerScreen({ onBack, onAdd, onEdit, onNavigate }: Props) 
           </View>
         )}
 
+        <Text style={styles.footerNote}>
+          Starter seed times may change in-game.
+        </Text>
+
         <Pressable
           style={styles.restoreBtn}
           onPress={() => void restoreStarterSeeds()}
           accessibilityRole="button"
         >
-          <Text style={styles.restoreBtnText}>↺ Restore missing starter seeds</Text>
+          <Text style={styles.restoreBtnText}>↺ Restore defaults</Text>
         </Pressable>
       </ScrollView>
 
@@ -175,13 +188,15 @@ const styles = StyleSheet.create({
   title: {
     color: colors.foreground,
     fontSize: 28,
-    fontWeight: '900',
+    fontWeight: '600',
+    fontFamily: fonts.pixel,
     letterSpacing: -0.5,
   },
   subtitle: {
     color: colors.mutedForeground,
     fontSize: 13,
     marginTop: 2,
+    fontFamily: fonts.body,
   },
   addBtn: {
     width: 44,
@@ -193,7 +208,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   addBtnText: {
-    color: '#0B1510',
+    color: colors.primaryForeground,
     fontSize: 24,
     fontWeight: '700',
     lineHeight: 26,
@@ -204,13 +219,14 @@ const styles = StyleSheet.create({
   },
   searchInput: {
     backgroundColor: colors.card,
-    borderRadius: radius.md,
+    borderRadius: radius.lg,
     borderWidth: 1,
     borderColor: colors.border,
     color: colors.foreground,
     height: 44,
     paddingHorizontal: spacing.md,
     fontSize: 14,
+    fontFamily: fonts.body,
   },
   tabsRow: {
     flexDirection: 'row',
@@ -222,18 +238,22 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 10,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.card,
     borderWidth: 1,
     borderColor: colors.border,
+    minHeight: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   filterTabActive: {
-    backgroundColor: 'rgba(69,212,131,0.15)',
+    backgroundColor: colors.card,
     borderColor: colors.primary,
   },
   filterTabText: {
     color: colors.mutedForeground,
     fontSize: 13,
     fontWeight: '600',
+    fontFamily: fonts.bodySemiBold,
   },
   filterTabTextActive: {
     color: colors.primary,
@@ -245,7 +265,7 @@ const styles = StyleSheet.create({
   },
   seedCard: {
     backgroundColor: colors.card,
-    borderRadius: radius.md,
+    borderRadius: radius.lg,
     padding: spacing.md,
     borderWidth: 1,
     borderColor: colors.border,
@@ -256,33 +276,49 @@ const styles = StyleSheet.create({
   seedIconBox: {
     width: 48,
     height: 48,
-    backgroundColor: colors.surface,
-    borderRadius: radius.sm,
+    backgroundColor: colors.muted,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.border + '99',
     alignItems: 'center',
     justifyContent: 'center',
+    flexShrink: 0,
+  },
+  seedItemImg: {
+    width: 32,
+    height: 32,
   },
   seedEmoji: {
     fontSize: 24,
   },
   seedInfo: {
     flex: 1,
+    gap: 2,
   },
   seedName: {
     color: colors.foreground,
-    fontWeight: '700',
-    fontSize: 15,
+    fontWeight: '600',
+    fontSize: 14,
+    fontFamily: fonts.bodySemiBold,
   },
   seedMeta: {
     color: colors.mutedForeground,
-    marginTop: 3,
     fontSize: 12,
+    fontFamily: fonts.body,
+  },
+  reharvest: {
+    color: colors.accentBlue,
+    fontSize: 10,
+    fontWeight: '600',
+    marginTop: 4,
+    fontFamily: fonts.bodySemiBold,
   },
   seedRight: {
     alignItems: 'flex-end',
     gap: 4,
   },
   badge: {
-    backgroundColor: 'rgba(76,168,255,0.12)',
+    backgroundColor: colors.accentBlue + '1F',
     borderRadius: 6,
     paddingHorizontal: 8,
     paddingVertical: 2,
@@ -291,9 +327,10 @@ const styles = StyleSheet.create({
     color: colors.accentBlue,
     fontSize: 10,
     fontWeight: '700',
+    fontFamily: fonts.bodyBold,
   },
   badgeOnetime: {
-    backgroundColor: 'rgba(145,166,157,0.12)',
+    backgroundColor: colors.mutedForeground + '1F',
   },
   badgeOnetimeText: {
     color: colors.mutedForeground,
@@ -302,6 +339,7 @@ const styles = StyleSheet.create({
     color: colors.mutedForeground,
     fontSize: 12,
     fontWeight: '600',
+    fontFamily: fonts.bodySemiBold,
   },
   empty: {
     paddingVertical: 40,
@@ -310,10 +348,17 @@ const styles = StyleSheet.create({
   emptyText: {
     color: colors.mutedForeground,
     fontSize: 15,
+    fontFamily: fonts.body,
+  },
+  footerNote: {
+    color: colors.mutedForeground,
+    fontSize: 12,
+    textAlign: 'center',
+    fontFamily: fonts.body,
+    marginTop: 4,
   },
   restoreBtn: {
-    marginTop: spacing.sm,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.card,
     borderRadius: 10,
     borderWidth: 1,
     borderColor: colors.border,
@@ -325,5 +370,6 @@ const styles = StyleSheet.create({
     color: colors.mutedForeground,
     fontWeight: '600',
     fontSize: 14,
+    fontFamily: fonts.bodySemiBold,
   },
 });
