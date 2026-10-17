@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState } from "react";
 import {
   FlatList,
   KeyboardAvoidingView,
@@ -9,21 +9,21 @@ import {
   Text,
   TextInput,
   View,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { FarmCard } from '../components/FarmCard';
-import { TabBar } from '../components/TabBar';
-import { useNow } from '../hooks/useNow';
-import { useStore } from '../store';
-import { colors, fonts, radius, spacing } from '../theme';
-import type { Farm, HarvestStatus, Route, Seed } from '../types';
-import { confirmAction } from '../utils/confirm';
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { FarmCard } from "../components/FarmCard";
+import { TabBar } from "../components/TabBar";
+import { useNow } from "../hooks/useNow";
+import { useStore } from "../store";
+import { colors, fonts, radius, spacing } from "../theme";
+import type { Farm, HarvestStatus, Route, Seed } from "../types";
+import { confirmAction } from "../utils/confirm";
 import {
   addMinutes,
   getStatus,
   minutesToDHM,
   parseNonNegInt,
-} from '../utils/time';
+} from "../utils/time";
 
 const rank: Record<HarvestStatus, number> = {
   ready: 0,
@@ -40,32 +40,32 @@ type Props = {
 
 // ─── Swap / Replant modal state ───────────────────────────────────────────────
 type ActionModal =
-  | { type: 'swap'; farm: Farm; seed: Seed | undefined }
-  | { type: 'replant'; farm: Farm; seed: Seed | undefined };
+  | { type: "swap"; farm: Farm; seed: Seed | undefined }
+  | { type: "replant"; farm: Farm; seed: Seed | undefined };
 
-type FilterStatus = 'all' | HarvestStatus | 'pinned';
-type SortMode = 'recommended' | 'name' | 'time';
+type FilterStatus = "all" | HarvestStatus | "pinned";
+type SortMode = "recommended" | "name" | "time";
 
 function getHour(): string {
   const h = new Date().getHours();
-  if (h < 12) return 'morning';
-  if (h < 17) return 'afternoon';
-  return 'evening';
+  if (h < 12) return "morning";
+  if (h < 17) return "afternoon";
+  return "evening";
 }
 
 function padStat(n: number): string {
-  return n.toString().padStart(2, '0');
+  return n.toString().padStart(2, "0");
 }
 
 const SECTION_LABELS: Record<HarvestStatus, string> = {
-  ready: 'READY',
-  growing: 'GROWING',
-  harvested: 'HARVESTED',
+  ready: "READY",
+  growing: "GROWING",
+  harvested: "HARVESTED",
 };
 
 type ListItem =
-  | { type: 'section'; status: HarvestStatus; count: number }
-  | { type: 'farm'; farm: Farm; status: HarvestStatus };
+  | { type: "section"; status: HarvestStatus; count: number }
+  | { type: "farm"; farm: Farm; status: HarvestStatus };
 
 export function DashboardScreen({
   onAddFarm,
@@ -73,31 +73,38 @@ export function DashboardScreen({
   onEditFarm,
   onNavigate,
 }: Props) {
-  const { farms, seeds, resetFarm, harvestFarm, swapFarm, replantFarm, updateFarm } =
-    useStore();
+  const {
+    farms,
+    seeds,
+    resetFarm,
+    harvestFarm,
+    swapFarm,
+    replantFarm,
+    updateFarm,
+  } = useStore();
   const now = useNow(1000);
 
   const [modal, setModal] = useState<ActionModal | null>(null);
-  const [filterStatus, setFilterStatus] = useState<FilterStatus>('all');
+  const [filterStatus, setFilterStatus] = useState<FilterStatus>("all");
   const [showSearch, setShowSearch] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
 
   // Fields inside the modal
-  const [modalName, setModalName] = useState('');
-  const [modalDays, setModalDays] = useState('');
-  const [modalHours, setModalHours] = useState('');
-  const [modalMinutes, setModalMinutes] = useState('');
+  const [modalName, setModalName] = useState("");
+  const [modalDays, setModalDays] = useState("");
+  const [modalHours, setModalHours] = useState("");
+  const [modalMinutes, setModalMinutes] = useState("");
   const [modalError, setModalError] = useState<string | null>(null);
 
   const sorted = useMemo(() => {
     let list = [...farms];
 
     // Filter by status / pinned
-    if (filterStatus === 'pinned') {
+    if (filterStatus === "pinned") {
       list = list.filter((f) => f.pinned);
-    } else if (filterStatus !== 'all') {
+    } else if (filterStatus !== "all") {
       list = list.filter(
-        (f) => getStatus(f.readyAt, now, f.harvestedAt) === filterStatus
+        (f) => getStatus(f.readyAt, now, f.harvestedAt) === filterStatus,
       );
     }
 
@@ -107,7 +114,7 @@ export function DashboardScreen({
       list = list.filter(
         (f) =>
           f.name.toLowerCase().includes(q) ||
-          f.seedName.toLowerCase().includes(q)
+          f.seedName.toLowerCase().includes(q),
       );
     }
 
@@ -135,14 +142,14 @@ export function DashboardScreen({
       groups[s]!.push(farm);
     }
 
-    const order: HarvestStatus[] = ['ready', 'growing', 'harvested'];
+    const order: HarvestStatus[] = ["ready", "growing", "harvested"];
     const items: ListItem[] = [];
     for (const status of order) {
       const groupFarms = groups[status];
       if (!groupFarms || groupFarms.length === 0) continue;
-      items.push({ type: 'section', status, count: groupFarms.length });
+      items.push({ type: "section", status, count: groupFarms.length });
       for (const farm of groupFarms) {
-        items.push({ type: 'farm', farm, status });
+        items.push({ type: "farm", farm, status });
       }
     }
     return items;
@@ -150,18 +157,18 @@ export function DashboardScreen({
 
   const totalFarms = farms.length;
   const readyCount = farms.filter(
-    (f) => getStatus(f.readyAt, now, f.harvestedAt) === 'ready'
+    (f) => getStatus(f.readyAt, now, f.harvestedAt) === "ready",
   ).length;
   const growingCount = farms.filter(
-    (f) => getStatus(f.readyAt, now, f.harvestedAt) === 'growing'
+    (f) => getStatus(f.readyAt, now, f.harvestedAt) === "growing",
   ).length;
 
   const confirmReset = (farm: Farm) => {
     confirmAction(
-      'Reset timer?',
+      "Reset timer?",
       `Start a new cycle for "${farm.name}" as if just planted.`,
-      'Reset',
-      () => void resetFarm(farm.id)
+      "Reset",
+      () => void resetFarm(farm.id),
     );
   };
 
@@ -171,12 +178,12 @@ export function DashboardScreen({
       : undefined;
     const defaultMinutes = seed?.growTimeMinutes ?? 0;
     const dhm = minutesToDHM(defaultMinutes);
-    setModalName('');
-    setModalDays(dhm.days > 0 ? String(dhm.days) : '');
-    setModalHours(dhm.hours > 0 ? String(dhm.hours) : '');
-    setModalMinutes(dhm.minutes > 0 ? String(dhm.minutes) : '');
+    setModalName("");
+    setModalDays(dhm.days > 0 ? String(dhm.days) : "");
+    setModalHours(dhm.hours > 0 ? String(dhm.hours) : "");
+    setModalMinutes(dhm.minutes > 0 ? String(dhm.minutes) : "");
     setModalError(null);
-    setModal({ type: 'swap', farm, seed });
+    setModal({ type: "swap", farm, seed });
   };
 
   const openReplant = (farm: Farm) => {
@@ -186,19 +193,19 @@ export function DashboardScreen({
     const defaultMinutes = seed?.growTimeMinutes ?? 0;
     const dhm = minutesToDHM(defaultMinutes);
     setModalName(farm.name);
-    setModalDays(dhm.days > 0 ? String(dhm.days) : '');
-    setModalHours(dhm.hours > 0 ? String(dhm.hours) : '');
-    setModalMinutes(dhm.minutes > 0 ? String(dhm.minutes) : '');
+    setModalDays(dhm.days > 0 ? String(dhm.days) : "");
+    setModalHours(dhm.hours > 0 ? String(dhm.hours) : "");
+    setModalMinutes(dhm.minutes > 0 ? String(dhm.minutes) : "");
     setModalError(null);
-    setModal({ type: 'replant', farm, seed });
+    setModal({ type: "replant", farm, seed });
   };
 
   const closeModal = () => setModal(null);
 
   const totalModalMinutes = useMemo(() => {
-    const d = parseNonNegInt(modalDays || '0') ?? 0;
-    const h = parseNonNegInt(modalHours || '0') ?? 0;
-    const m = parseNonNegInt(modalMinutes || '0') ?? 0;
+    const d = parseNonNegInt(modalDays || "0") ?? 0;
+    const h = parseNonNegInt(modalHours || "0") ?? 0;
+    const m = parseNonNegInt(modalMinutes || "0") ?? 0;
     return d * 24 * 60 + h * 60 + m;
   }, [modalDays, modalHours, modalMinutes]);
 
@@ -211,15 +218,15 @@ export function DashboardScreen({
     if (!modal) return;
     const trimmedName = modalName.trim();
     if (!trimmedName) {
-      setModalError('Please enter a name for this farm.');
+      setModalError("Please enter a name for this farm.");
       return;
     }
     if (totalModalMinutes < 1) {
-      setModalError('Enter a grow duration of at least 1 minute.');
+      setModalError("Enter a grow duration of at least 1 minute.");
       return;
     }
     closeModal();
-    if (modal.type === 'swap') {
+    if (modal.type === "swap") {
       await swapFarm(modal.farm.id, trimmedName, totalModalMinutes);
     } else {
       await replantFarm(modal.farm.id, trimmedName, totalModalMinutes);
@@ -228,10 +235,10 @@ export function DashboardScreen({
 
   const confirmHarvest = (farm: Farm) => {
     confirmAction(
-      'Mark as harvested?',
+      "Mark as harvested?",
       `"${farm.name}" will be marked as harvested and waiting to be replanted.`,
-      'Harvested',
-      () => void harvestFarm(farm.id)
+      "Harvested",
+      () => void harvestFarm(farm.id),
     );
   };
 
@@ -240,10 +247,12 @@ export function DashboardScreen({
   };
 
   const renderItem = ({ item }: { item: ListItem }) => {
-    if (item.type === 'section') {
+    if (item.type === "section") {
       return (
         <View style={styles.sectionHeader}>
-          <Text style={[styles.sectionLabel, { color: STATUS_COLORS[item.status] }]}>
+          <Text
+            style={[styles.sectionLabel, { color: STATUS_COLORS[item.status] }]}
+          >
             {SECTION_LABELS[item.status]}
           </Text>
           <Text style={styles.sectionCount}>· {item.count}</Text>
@@ -266,19 +275,19 @@ export function DashboardScreen({
   };
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
+    <SafeAreaView style={styles.safe} edges={["top", "left", "right"]}>
       {/* ── Header ─────────────────────────────────────────────────────── */}
       <View style={styles.headerWrap}>
         <View style={styles.headerRow}>
           <View style={styles.logoRow}>
             <Text style={styles.logoEmoji}>🌱</Text>
-            <Text style={styles.logoText}>
+            <Text style={[styles.logoText, { color: "#45D483" }]}>
               GrowTrack<Text style={styles.logoDot}>.</Text>
             </Text>
           </View>
           <Pressable
             style={styles.settingsBtn}
-            onPress={() => onNavigate({ name: 'settings' })}
+            onPress={() => onNavigate({ name: "settings" })}
             accessibilityRole="button"
             accessibilityLabel="Settings"
           >
@@ -289,10 +298,12 @@ export function DashboardScreen({
         <Text style={styles.greeting}>Good {getHour()}, Guest</Text>
         <Text style={styles.farmSummary}>
           {totalFarms === 0
-            ? 'No farms yet'
-            : `${totalFarms} farm${totalFarms !== 1 ? 's' : ''} · `}
+            ? "No farms yet"
+            : `${totalFarms} farm${totalFarms !== 1 ? "s" : ""} · `}
           {totalFarms > 0 && (
-            <Text style={{ color: colors.primary }}>{readyCount} ready to harvest</Text>
+            <Text style={{ color: colors.primary }}>
+              {readyCount} ready to harvest
+            </Text>
           )}
         </Text>
       </View>
@@ -301,11 +312,15 @@ export function DashboardScreen({
       <View style={styles.statsRow}>
         <Pressable
           style={styles.statCell}
-          onPress={() => setFilterStatus('all')}
+          onPress={() => setFilterStatus("all")}
         >
           <View style={styles.statLabelRow}>
-            <Text style={[styles.statIcon, { color: colors.accentBlue }]}>🌱</Text>
-            <Text style={[styles.statCellLabel, { color: colors.accentBlue }]}>Total farms</Text>
+            <Text style={[styles.statIcon, { color: colors.accentBlue }]}>
+              🌱
+            </Text>
+            <Text style={[styles.statCellLabel, { color: colors.accentBlue }]}>
+              Total farms
+            </Text>
           </View>
           <Text style={[styles.statNum, { color: colors.foreground }]}>
             {padStat(totalFarms)}
@@ -314,11 +329,15 @@ export function DashboardScreen({
         <View style={styles.statDivider} />
         <Pressable
           style={styles.statCell}
-          onPress={() => setFilterStatus((p) => (p === 'ready' ? 'all' : 'ready'))}
+          onPress={() =>
+            setFilterStatus((p) => (p === "ready" ? "all" : "ready"))
+          }
         >
           <View style={styles.statLabelRow}>
             <Text style={[styles.statIcon, { color: colors.primary }]}>✅</Text>
-            <Text style={[styles.statCellLabel, { color: colors.primary }]}>Ready</Text>
+            <Text style={[styles.statCellLabel, { color: colors.primary }]}>
+              Ready
+            </Text>
           </View>
           <Text style={[styles.statNum, { color: colors.foreground }]}>
             {padStat(readyCount)}
@@ -327,11 +346,15 @@ export function DashboardScreen({
         <View style={styles.statDivider} />
         <Pressable
           style={styles.statCell}
-          onPress={() => setFilterStatus((p) => (p === 'growing' ? 'all' : 'growing'))}
+          onPress={() =>
+            setFilterStatus((p) => (p === "growing" ? "all" : "growing"))
+          }
         >
           <View style={styles.statLabelRow}>
             <Text style={[styles.statIcon, { color: colors.growing }]}>⏱️</Text>
-            <Text style={[styles.statCellLabel, { color: colors.growing }]}>Growing</Text>
+            <Text style={[styles.statCellLabel, { color: colors.growing }]}>
+              Growing
+            </Text>
           </View>
           <Text style={[styles.statNum, { color: colors.foreground }]}>
             {padStat(growingCount)}
@@ -343,18 +366,36 @@ export function DashboardScreen({
       <View style={styles.toolbar}>
         <View style={styles.filterRow}>
           <Pressable
-            style={[styles.filterBtn, filterStatus === 'all' && styles.filterBtnActive]}
-            onPress={() => setFilterStatus('all')}
+            style={[
+              styles.filterBtn,
+              filterStatus === "all" && styles.filterBtnActive,
+            ]}
+            onPress={() => setFilterStatus("all")}
           >
-            <Text style={[styles.filterBtnText, filterStatus === 'all' && styles.filterBtnTextActive]}>
+            <Text
+              style={[
+                styles.filterBtnText,
+                filterStatus === "all" && styles.filterBtnTextActive,
+              ]}
+            >
               All farms
             </Text>
           </Pressable>
           <Pressable
-            style={[styles.filterBtn, filterStatus === 'pinned' && styles.filterBtnActive]}
-            onPress={() => setFilterStatus((p) => (p === 'pinned' ? 'all' : 'pinned'))}
+            style={[
+              styles.filterBtn,
+              filterStatus === "pinned" && styles.filterBtnActive,
+            ]}
+            onPress={() =>
+              setFilterStatus((p) => (p === "pinned" ? "all" : "pinned"))
+            }
           >
-            <Text style={[styles.filterBtnText, filterStatus === 'pinned' && styles.filterBtnTextActive]}>
+            <Text
+              style={[
+                styles.filterBtnText,
+                filterStatus === "pinned" && styles.filterBtnTextActive,
+              ]}
+            >
               ⭐ Pinned
             </Text>
           </Pressable>
@@ -364,7 +405,7 @@ export function DashboardScreen({
             style={styles.iconBtn}
             onPress={() => {
               setShowSearch((p) => !p);
-              if (showSearch) setSearchQuery('');
+              if (showSearch) setSearchQuery("");
             }}
             accessibilityRole="button"
             accessibilityLabel="Search"
@@ -400,7 +441,9 @@ export function DashboardScreen({
       <FlatList
         data={listData}
         keyExtractor={(item, idx) =>
-          item.type === 'section' ? `section-${item.status}` : `farm-${item.farm.id}`
+          item.type === "section"
+            ? `section-${item.status}`
+            : `farm-${item.farm.id}`
         }
         contentContainerStyle={styles.list}
         ListEmptyComponent={
@@ -433,7 +476,7 @@ export function DashboardScreen({
       >
         <KeyboardAvoidingView
           style={styles.overlay}
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
         >
           <Pressable style={StyleSheet.absoluteFill} onPress={closeModal} />
           <View style={styles.sheet}>
@@ -443,7 +486,7 @@ export function DashboardScreen({
               <>
                 <View style={styles.sheetHeader}>
                   <Text style={styles.sheetTitle}>
-                    {modal.type === 'swap' ? '↔ Swap Farm' : '🌱 Replant Farm'}
+                    {modal.type === "swap" ? "↔ Swap Farm" : "🌱 Replant Farm"}
                   </Text>
                   <Pressable onPress={closeModal} style={styles.closeBtn}>
                     <Text style={styles.closeBtnText}>✕</Text>
@@ -454,13 +497,14 @@ export function DashboardScreen({
                 <View style={styles.seedPill}>
                   <Text style={styles.seedPillLabel}>Seed type</Text>
                   <Text style={styles.seedPillValue}>
-                    {modal.seed?.name ?? 'Custom / manual'}
+                    {modal.seed?.name ?? "Custom / manual"}
                   </Text>
                 </View>
 
-                {modal.type === 'swap' ? (
+                {modal.type === "swap" ? (
                   <Text style={styles.sheetHint}>
-                    Enter the name of the new farm. The seed type stays the same.
+                    Enter the name of the new farm. The seed type stays the
+                    same.
                   </Text>
                 ) : (
                   <Text style={styles.sheetHint}>
@@ -478,8 +522,8 @@ export function DashboardScreen({
                     setModalError(null);
                   }}
                   placeholder={
-                    modal.type === 'swap'
-                      ? 'World ABCXYZ — Lower Left'
+                    modal.type === "swap"
+                      ? "World ABCXYZ — Lower Left"
                       : modal.farm.name
                   }
                   placeholderTextColor={colors.mutedForeground}
@@ -489,10 +533,10 @@ export function DashboardScreen({
                 <Text style={styles.fieldLabel}>Grow duration</Text>
                 <View style={styles.dhmRow}>
                   {[
-                    { label: 'Days', value: modalDays, set: setModalDays },
-                    { label: 'Hours', value: modalHours, set: setModalHours },
+                    { label: "Days", value: modalDays, set: setModalDays },
+                    { label: "Hours", value: modalHours, set: setModalHours },
                     {
-                      label: 'Minutes',
+                      label: "Minutes",
                       value: modalMinutes,
                       set: setModalMinutes,
                     },
@@ -519,10 +563,10 @@ export function DashboardScreen({
                     <Text style={styles.previewLabel}>⏱ ESTIMATED HARVEST</Text>
                     <Text style={styles.previewTime}>
                       {new Date(modalPreviewReady).toLocaleString(undefined, {
-                        month: 'short',
-                        day: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit',
+                        month: "short",
+                        day: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
                       })}
                     </Text>
                     {modal.seed && (
@@ -547,7 +591,7 @@ export function DashboardScreen({
                     onPress={() => void confirmModal()}
                   >
                     <Text style={styles.sheetBtnPrimaryText}>
-                      {modal.type === 'swap' ? 'Swap' : 'Replant'}
+                      {modal.type === "swap" ? "Swap" : "Replant"}
                     </Text>
                   </Pressable>
                 </View>
@@ -580,14 +624,14 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     marginBottom: 6,
   },
   logoRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 8,
   },
   logoEmoji: {
@@ -597,7 +641,7 @@ const styles = StyleSheet.create({
   logoText: {
     color: colors.foreground,
     fontSize: 23,
-    fontWeight: '600',
+    fontWeight: "600",
     fontFamily: fonts.pixel,
   },
   logoDot: {
@@ -610,8 +654,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.card,
     borderWidth: 1,
     borderColor: colors.border,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   settingsIcon: {
     fontSize: 18,
@@ -625,7 +669,7 @@ const styles = StyleSheet.create({
   greeting: {
     color: colors.foreground,
     fontSize: 28,
-    fontWeight: '600',
+    fontWeight: "600",
     fontFamily: fonts.pixel,
     lineHeight: 34,
   },
@@ -638,7 +682,7 @@ const styles = StyleSheet.create({
 
   // ── Stats ────────────────────────────────────────────────────────────────
   statsRow: {
-    flexDirection: 'row',
+    flexDirection: "row",
     marginHorizontal: spacing.lg,
     backgroundColor: colors.card,
     borderRadius: radius.lg,
@@ -654,8 +698,8 @@ const styles = StyleSheet.create({
     minHeight: 44,
   },
   statLabelRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 6,
     marginBottom: 4,
   },
@@ -664,14 +708,14 @@ const styles = StyleSheet.create({
   },
   statCellLabel: {
     fontSize: 10,
-    fontWeight: '700',
+    fontWeight: "700",
     fontFamily: fonts.bodyBold,
     letterSpacing: 0.5,
   },
   statDivider: {
     width: 1,
     backgroundColor: colors.border,
-    alignSelf: 'stretch',
+    alignSelf: "stretch",
   },
   statNum: {
     fontSize: 31,
@@ -682,14 +726,14 @@ const styles = StyleSheet.create({
 
   // ── Toolbar ──────────────────────────────────────────────────────────────
   toolbar: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingHorizontal: spacing.lg,
     marginBottom: spacing.xs,
     gap: spacing.sm,
   },
   filterRow: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: 4,
     flex: 1,
   },
@@ -699,8 +743,8 @@ const styles = StyleSheet.create({
     minHeight: 44,
     borderRadius: 10,
     backgroundColor: colors.secondary,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   filterBtnActive: {
     backgroundColor: colors.secondary,
@@ -710,37 +754,37 @@ const styles = StyleSheet.create({
   filterBtnText: {
     color: colors.foreground,
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: "600",
     fontFamily: fonts.bodySemiBold,
   },
   filterBtnTextActive: {
     color: colors.primary,
   },
   toolbarRight: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: 4,
-    alignItems: 'center',
+    alignItems: "center",
   },
   iconBtn: {
     width: 44,
     height: 44,
     borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   iconBtnText: {
     fontSize: 17,
     color: colors.mutedForeground,
   },
   addBtn: {
-    width: 'auto',
+    width: "auto",
     paddingHorizontal: 12,
     backgroundColor: colors.primary,
     borderRadius: 10,
   },
   addBtnText: {
     color: colors.primaryForeground,
-    fontWeight: '600',
+    fontWeight: "600",
     fontSize: 12,
     fontFamily: fonts.bodySemiBold,
   },
@@ -764,22 +808,22 @@ const styles = StyleSheet.create({
 
   // ── Section headers ────────────────────────────────────────────────────
   sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 6,
     marginBottom: spacing.sm,
     marginTop: 4,
   },
   sectionLabel: {
     fontSize: 10,
-    fontWeight: '700',
+    fontWeight: "700",
     fontFamily: fonts.bodyBold,
     letterSpacing: 1.2,
   },
   sectionCount: {
     fontSize: 10,
     color: colors.mutedForeground,
-    fontWeight: '600',
+    fontWeight: "600",
     fontFamily: fonts.bodySemiBold,
     opacity: 0.6,
   },
@@ -795,7 +839,7 @@ const styles = StyleSheet.create({
   // ── Empty ────────────────────────────────────────────────────────────────
   empty: {
     paddingVertical: 60,
-    alignItems: 'center',
+    alignItems: "center",
     gap: spacing.sm,
   },
   emptyEmoji: {
@@ -805,13 +849,13 @@ const styles = StyleSheet.create({
   emptyTitle: {
     color: colors.foreground,
     fontSize: 20,
-    fontWeight: '700',
+    fontWeight: "700",
     fontFamily: fonts.bodyBold,
   },
   emptyBody: {
     color: colors.mutedForeground,
     fontSize: 14,
-    textAlign: 'center',
+    textAlign: "center",
     lineHeight: 20,
     paddingHorizontal: spacing.xl,
     fontFamily: fonts.body,
@@ -825,7 +869,7 @@ const styles = StyleSheet.create({
   },
   emptyBtnText: {
     color: colors.primaryForeground,
-    fontWeight: '700',
+    fontWeight: "700",
     fontSize: 15,
     fontFamily: fonts.bodyBold,
   },
@@ -839,8 +883,8 @@ const styles = StyleSheet.create({
   // ── Modal / Sheet ─────────────────────────────────────────────────────────
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.65)',
-    justifyContent: 'flex-end',
+    backgroundColor: "rgba(0,0,0,0.65)",
+    justifyContent: "flex-end",
   },
   sheet: {
     backgroundColor: colors.bg,
@@ -854,32 +898,32 @@ const styles = StyleSheet.create({
   handle: {
     width: 36,
     height: 4,
-    backgroundColor: colors.mutedForeground + '66',
+    backgroundColor: colors.mutedForeground + "66",
     borderRadius: 2,
-    alignSelf: 'center',
+    alignSelf: "center",
     marginBottom: spacing.sm,
   },
   sheetHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
   },
   sheetTitle: {
     color: colors.foreground,
     fontSize: 27,
-    fontWeight: '600',
+    fontWeight: "600",
     fontFamily: fonts.pixel,
   },
   closeBtn: {
     width: 44,
     height: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   closeBtnText: {
     color: colors.mutedForeground,
     fontSize: 20,
-    fontWeight: '700',
+    fontWeight: "700",
   },
   sheetHint: {
     color: colors.mutedForeground,
@@ -888,8 +932,8 @@ const styles = StyleSheet.create({
     fontFamily: fonts.body,
   },
   seedPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     backgroundColor: colors.surface,
     borderRadius: radius.md,
     padding: spacing.sm,
@@ -900,20 +944,20 @@ const styles = StyleSheet.create({
   seedPillLabel: {
     color: colors.mutedForeground,
     fontSize: 13,
-    fontWeight: '600',
+    fontWeight: "600",
     fontFamily: fonts.bodySemiBold,
   },
   seedPillValue: {
     color: colors.primary,
     fontSize: 13,
-    fontWeight: '700',
+    fontWeight: "700",
     flex: 1,
     fontFamily: fonts.bodyBold,
   },
   fieldLabel: {
     color: colors.mutedForeground,
     fontSize: 13,
-    fontWeight: '600',
+    fontWeight: "600",
     marginTop: spacing.xs,
     fontFamily: fonts.bodySemiBold,
   },
@@ -930,7 +974,7 @@ const styles = StyleSheet.create({
     fontFamily: fonts.bodySemiBold,
   },
   dhmRow: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: spacing.sm,
   },
   dhmCell: {
@@ -940,13 +984,13 @@ const styles = StyleSheet.create({
   dhmLabel: {
     color: colors.mutedForeground,
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: "600",
     fontFamily: fonts.bodySemiBold,
   },
   previewCard: {
     borderWidth: 1,
-    borderColor: colors.accentBlue + '33',
-    backgroundColor: colors.accentBlue + '0D',
+    borderColor: colors.accentBlue + "33",
+    backgroundColor: colors.accentBlue + "0D",
     borderRadius: radius.lg,
     padding: spacing.md,
     gap: 4,
@@ -954,14 +998,14 @@ const styles = StyleSheet.create({
   previewLabel: {
     color: colors.accentBlue,
     fontSize: 10,
-    fontWeight: '700',
+    fontWeight: "700",
     letterSpacing: 1.2,
     fontFamily: fonts.bodyBold,
   },
   previewTime: {
     color: colors.foreground,
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: "600",
     fontFamily: fonts.bodySemiBold,
   },
   previewSeed: {
@@ -975,7 +1019,7 @@ const styles = StyleSheet.create({
     fontFamily: fonts.body,
   },
   sheetActions: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: spacing.sm,
     marginTop: spacing.xs,
   },
@@ -983,8 +1027,8 @@ const styles = StyleSheet.create({
     flex: 1,
     minHeight: 44,
     borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   sheetBtnPrimary: {
     backgroundColor: colors.primary,
@@ -996,13 +1040,13 @@ const styles = StyleSheet.create({
   },
   sheetBtnPrimaryText: {
     color: colors.primaryForeground,
-    fontWeight: '700',
+    fontWeight: "700",
     fontSize: 15,
     fontFamily: fonts.bodyBold,
   },
   sheetBtnSecondaryText: {
     color: colors.foreground,
-    fontWeight: '700',
+    fontWeight: "700",
     fontSize: 15,
     fontFamily: fonts.bodyBold,
   },
