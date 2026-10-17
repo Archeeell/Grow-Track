@@ -1,3 +1,4 @@
+import { useFonts } from 'expo-font';
 import { StatusBar } from 'expo-status-bar';
 import { useState } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
@@ -69,6 +70,24 @@ function Root() {
 }
 
 export default function App() {
+  const [fontsLoaded] = useFonts({
+    'PixelifySans-Regular': require('./assets/fonts/PixelifySans-Regular.ttf'),
+    'PixelifySans-Bold': require('./assets/fonts/PixelifySans-Bold.ttf'),
+    'PixelifySans-SemiBold': require('./assets/fonts/PixelifySans-SemiBold.ttf'),
+    'PixelifySans-Medium': require('./assets/fonts/PixelifySans-Medium.ttf'),
+    'DMSans-Regular': require('./assets/fonts/DMSans-Regular.ttf'),
+    'DMSans-Bold': require('./assets/fonts/DMSans-Bold.ttf'),
+    'DMSans-SemiBold': require('./assets/fonts/DMSans-SemiBold.ttf'),
+  });
+
+  if (!fontsLoaded) {
+    return (
+      <View style={styles.boot}>
+        <ActivityIndicator color={colors.primary} />
+      </View>
+    );
+  }
+
   return (
     <SafeAreaProvider>
       <StoreProvider>
