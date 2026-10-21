@@ -23,7 +23,7 @@ describe('FarmFormScreen', () => {
 
   it('renders without crashing', () => {
     const { getByPlaceholderText } = render(<FarmFormScreen onBack={() => {}} />);
-    expect(getByPlaceholderText('WORLD NAME')).toBeTruthy();
+    expect(getByPlaceholderText('e.g. ARCHELLGT')).toBeTruthy();
   });
 
   it('initializes with existing farm data when farmId is provided', () => {
@@ -55,6 +55,6 @@ describe('FarmFormScreen', () => {
     });
 
     const { getByPlaceholderText } = render(<FarmFormScreen farmId="farm-1" onBack={() => {}} />);
-    expect(getByPlaceholderText('WORLD NAME').props.value).toBe('TEST FARM');
+    expect(getByPlaceholderText('e.g. ARCHELLGT').props.value).toBe('TEST FARM');
   });
 });
