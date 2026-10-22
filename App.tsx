@@ -4,6 +4,8 @@ import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { AuthProvider, useAuth } from './src/auth/AuthContext';
+import { AuthScreen, type AuthPage } from './src/screens/AuthScreen';
 import { DashboardScreen } from './src/screens/DashboardScreen';
 import { FarmFormScreen } from './src/screens/FarmFormScreen';
 import { SeedFormScreen } from './src/screens/SeedFormScreen';
@@ -71,6 +73,42 @@ function Root() {
   );
 }
 
+// ─── AppGate: reads auth state, shows Login or Root ──────────────────────────
+function AppGate() {
+  const { authState } = useAuth();
+  const [authPage, setAuthPage] = useState<AuthPage>('login');
+
+  // While checking persisted session — show blank bg, no flash of Login
+  if (authState.status === 'loading') {
+    return <View style={styles.boot} />;
+  }
+
+  if (authState.status === 'unauthenticated') {
+    return (
+      <SafeAreaProvider>
+        <StatusBar style="light" />
+        <AuthScreen
+          page={authPage}
+          onNavigate={setAuthPage}
+          onAuthSuccess={() => {
+            // AuthContext updates authState via setAccount → re-render shows Root
+          }}
+        />
+      </SafeAreaProvider>
+    );
+  }
+
+  // Authenticated — show app
+  return (
+    <SafeAreaProvider>
+      <StoreProvider>
+        <StatusBar style="light" />
+        <Root />
+      </StoreProvider>
+    </SafeAreaProvider>
+  );
+}
+
 export default function App() {
   const [fontsLoaded] = useFonts({
     'PixelifySans-Regular': require('./assets/fonts/PixelifySans-Regular.ttf'),
@@ -128,12 +166,9 @@ export default function App() {
   }
 
   return (
-    <SafeAreaProvider>
-      <StoreProvider>
-        <StatusBar style="light" />
-        <Root />
-      </StoreProvider>
-    </SafeAreaProvider>
+    <AuthProvider>
+      <AppGate />
+    </AuthProvider>
   );
 }
 
