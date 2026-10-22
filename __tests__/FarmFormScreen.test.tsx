@@ -8,7 +8,6 @@ jest.mock('../src/store', () => ({
     farms: [],
     seeds: [
       { id: 'sugar-cane', name: 'Sugar Cane', growTimeMinutes: 242, reharvestIntervalMinutes: null, builtIn: true },
-      { id: 'venus-guytrap', name: 'Venus Guytrap', growTimeMinutes: 1169, reharvestIntervalMinutes: null, builtIn: true }
     ],
     addFarm: jest.fn(),
     updateFarm: jest.fn(),
@@ -47,7 +46,6 @@ describe('FarmFormScreen', () => {
       farms: [existingFarm],
       seeds: [
         { id: 'sugar-cane', name: 'Sugar Cane', growTimeMinutes: 242, reharvestIntervalMinutes: null, builtIn: true },
-        { id: 'venus-guytrap', name: 'Venus Guytrap', growTimeMinutes: 1169, reharvestIntervalMinutes: null, builtIn: true }
       ],
       addFarm: jest.fn(),
       updateFarm: jest.fn(),
