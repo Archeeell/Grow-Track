@@ -1,18 +1,25 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+/**
+ * TabBar -- pixel-faithful replica of Make bottom nav.
+ * Source: FarmDashboard.tsx (Figma Make live bundle + DOM).
+ * nav: max-w-[460px] flex justify-around border-t border-border
+ *      bg-card/95 px-5 pb-[max(12,safe)] pt-2 backdrop-blur-md
+ * Each tab: flex min-h-12 w-20 flex-col items-center justify-center gap-1
+ *           text-[10px] font-medium
+ * Icon size: 21. Active: text-primary, Inactive: text-muted-foreground.
+ */
+import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors, fonts, spacing } from '../theme';
+import { LeafIcon, SettingsGearIcon } from './settings/SettingsIcons';
+import { SproutIcon } from './auth/AuthIcons';
+import { colors, fonts } from '../theme';
 import type { Route } from '../types';
 
-type Tab = {
-  name: Route['name'];
-  label: string;
-  icon: string;
-};
+type TabId = 'dashboard' | 'seeds' | 'settings';
 
-const TABS: Tab[] = [
-  { name: 'dashboard', label: 'Farms', icon: '🌱' },
-  { name: 'seeds', label: 'Seeds', icon: '🍃' },
-  { name: 'settings', label: 'Settings', icon: '⚙️' },
+const TABS: { id: TabId; label: string; routeName: Route['name'] }[] = [
+  { id: 'dashboard', label: 'Farms', routeName: 'dashboard' },
+  { id: 'seeds', label: 'Seeds', routeName: 'seeds' },
+  { id: 'settings', label: 'Settings', routeName: 'settings' },
 ];
 
 type Props = {
@@ -20,28 +27,43 @@ type Props = {
   onNavigate: (route: Route) => void;
 };
 
+function TabIcon({ id, color }: { id: TabId; color: string }) {
+  if (id === 'dashboard') return <SproutIcon size={21} color={color} />;
+  if (id === 'seeds') return <LeafIcon size={21} color={color} />;
+  return <SettingsGearIcon size={21} color={color} />;
+}
+
 export function TabBar({ active, onNavigate }: Props) {
   const insets = useSafeAreaInsets();
+  const pb = Math.max(12, insets.bottom);
 
   return (
-    <View style={[styles.bar, { paddingBottom: Math.max(insets.bottom, spacing.xs) }]}>
+    <View
+      style={[
+        styles.bar,
+        { paddingBottom: pb },
+        Platform.OS === 'web' ? ({ backdropFilter: 'blur(12px)' } as object) : {},
+      ]}
+    >
       {TABS.map((tab) => {
-        const isActive = active === tab.name;
+        const isActive = active === tab.routeName;
+        const color = isActive ? colors.primary : colors.mutedForeground;
         return (
           <Pressable
-            key={tab.name}
+            key={tab.id}
             style={styles.tab}
             accessibilityRole="button"
             accessibilityLabel={tab.label}
-            onPress={() => onNavigate({ name: tab.name } as Route)}
+            accessibilityState={{ selected: isActive }}
+            onPress={() => onNavigate({ name: tab.routeName } as Route)}
           >
-            <Text style={[styles.icon, isActive && styles.iconActive]}>
-              {tab.icon}
-            </Text>
-            <Text style={[styles.label, isActive && styles.labelActive]}>
+            <TabIcon id={tab.id} color={color} />
+            <Text
+              style={[styles.label, isActive && styles.labelActive]}
+              allowFontScaling={false}
+            >
               {tab.label}
             </Text>
-            {isActive && <View style={styles.activeDot} />}
           </Pressable>
         );
       })}
@@ -52,40 +74,31 @@ export function TabBar({ active, onNavigate }: Props) {
 const styles = StyleSheet.create({
   bar: {
     flexDirection: 'row',
-    backgroundColor: colors.card,
+    justifyContent: 'space-around',
+    backgroundColor: 'rgba(20,33,30,0.95)',
     borderTopWidth: 1,
     borderTopColor: colors.border,
-    paddingTop: spacing.xs,
+    paddingHorizontal: 20,
+    paddingTop: 8,
+    maxWidth: 460,
+    width: '100%',
+    alignSelf: 'center',
   },
   tab: {
     flex: 1,
+    minHeight: 48,
+    maxWidth: 80,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 2,
-    paddingVertical: 4,
-    minHeight: 52,
-  },
-  icon: {
-    fontSize: 20,
-    opacity: 0.45,
-  },
-  iconActive: {
-    opacity: 1,
+    gap: 4,
   },
   label: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: colors.mutedForeground,
+    fontSize: 10,
     fontFamily: fonts.bodySemiBold,
+    color: colors.mutedForeground,
+    includeFontPadding: false,
   },
   labelActive: {
     color: colors.primary,
-  },
-  activeDot: {
-    width: 4,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: colors.primary,
-    marginTop: 2,
   },
 });
