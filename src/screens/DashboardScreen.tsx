@@ -13,6 +13,12 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { FarmCard } from "../components/FarmCard";
 import { TabBar } from "../components/TabBar";
+import {
+  CheckIcon,
+  ChevronDownIcon,
+  SearchIcon,
+  StarIcon,
+} from "../components/dashboard/DashboardIcons";
 import { useNow } from "../hooks/useNow";
 import { useStore } from "../store";
 import { fonts, radius, spacing } from "../theme";
@@ -48,6 +54,14 @@ type ActionModal =
 
 type FilterStatus = "all" | HarvestStatus | "pinned";
 type SortMode = "recommended" | "name" | "time";
+
+const FILTER_OPTIONS: { id: FilterStatus; label: string }[] = [
+  { id: "all", label: "All farms" },
+  { id: "ready", label: "Ready" },
+  { id: "growing", label: "Growing" },
+  { id: "harvested", label: "Harvested" },
+  { id: "pinned", label: "Pinned" },
+];
 
 function getHour(): string {
   const h = new Date().getHours();
@@ -191,33 +205,112 @@ const useStyles = makeStyles(({ colors }) => ({
     paddingHorizontal: spacing.lg,
     marginBottom: spacing.xs,
     gap: spacing.sm,
+    zIndex: 30,
   },
   filterRow: {
     flexDirection: "row",
     gap: 4,
     flex: 1,
+    alignItems: "center",
+  },
+  dropdownAnchor: {
+    position: "relative",
+    zIndex: 35,
   },
   filterBtn: {
-    paddingHorizontal: 12,
-    paddingVertical: 0,
-    minHeight: 44,
-    borderRadius: 10,
-    backgroundColor: colors.secondary,
+    flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
+    gap: 6,
+    paddingHorizontal: 12,
+    minHeight: 44,
+    borderRadius: 8,
+    backgroundColor: "transparent",
   },
   filterBtnActive: {
     backgroundColor: colors.secondary,
-    borderWidth: 1,
-    borderColor: colors.primary,
   },
   filterBtnText: {
-    color: colors.foreground,
+    color: colors.mutedForeground,
     fontSize: 12,
     fontWeight: "600",
     fontFamily: fonts.bodySemiBold,
   },
   filterBtnTextActive: {
+    color: colors.foreground,
+  },
+  pinnedBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 8,
+    minHeight: 44,
+    borderRadius: 8,
+    backgroundColor: "transparent",
+  },
+  pinnedBtnActive: {
+    backgroundColor: colors.secondary,
+  },
+  pinnedBtnText: {
+    color: colors.mutedForeground,
+    fontSize: 12,
+    fontWeight: "600",
+    fontFamily: fonts.bodySemiBold,
+  },
+  pinnedBtnTextActive: {
+    color: colors.foreground,
+  },
+  dropdownBackdrop: {
+    ...(StyleSheet.absoluteFill as object),
+    zIndex: 25,
+  },
+  dropdownMenu: {
+    position: "absolute",
+    top: 48,
+    left: 0,
+    width: 224,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.popover,
+    padding: 6,
+    zIndex: 50,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 12,
+  },
+  dropdownHeader: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    fontSize: 10,
+    fontFamily: fonts.bodySemiBold,
+    letterSpacing: 1.2,
+    color: colors.mutedForeground,
+  },
+  dropdownItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    minHeight: 44,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+  },
+  dropdownItemSelected: {
+    backgroundColor: withAlpha(colors.primary, 0.10),
+  },
+  dropdownItemCheck: {
+    width: 16,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  dropdownItemText: {
+    fontSize: 12,
+    fontFamily: fonts.body,
+    color: colors.foreground,
+  },
+  dropdownItemTextSelected: {
+    fontFamily: fonts.bodySemiBold,
     color: colors.primary,
   },
   toolbarRight: {
@@ -341,6 +434,44 @@ const useStyles = makeStyles(({ colors }) => ({
     textAlign: "center",
     fontFamily: fonts.body,
     marginTop: 4,
+  },
+  emptyFilter: {
+    borderRadius: 12,
+    borderWidth: 1,
+    borderStyle: "dashed",
+    borderColor: colors.border,
+    paddingHorizontal: 20,
+    paddingVertical: 32,
+    alignItems: "center",
+    marginHorizontal: spacing.lg,
+    marginTop: spacing.md,
+  },
+  emptyFilterTitle: {
+    fontFamily: fonts.pixel,
+    fontSize: 24,
+    color: colors.foreground,
+    textAlign: "center",
+  },
+  emptyFilterBody: {
+    fontFamily: fonts.body,
+    fontSize: 12,
+    lineHeight: 20,
+    color: colors.mutedForeground,
+    textAlign: "center",
+    marginTop: 8,
+    maxWidth: 256,
+  },
+  emptyFilterBtn: {
+    marginTop: 12,
+    minHeight: 44,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 16,
+  },
+  emptyFilterBtnText: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 12,
+    color: colors.primary,
   },
 
   // ── Modal / Sheet ─────────────────────────────────────────────────────────
@@ -543,8 +674,22 @@ export function DashboardScreen({
 
   const [modal, setModal] = useState<ActionModal | null>(null);
   const [filterStatus, setFilterStatus] = useState<FilterStatus>("all");
+  const [filterDropdownOpen, setFilterDropdownOpen] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+
+  const filterLabel = useMemo(() => {
+    switch (filterStatus) {
+      case "ready":
+        return "Ready";
+      case "growing":
+        return "Growing";
+      case "harvested":
+        return "Harvested";
+      default:
+        return "All farms";
+    }
+  }, [filterStatus]);
 
   // Fields inside the modal
   const [modalName, setModalName] = useState("");
@@ -733,6 +878,13 @@ export function DashboardScreen({
 
   return (
     <SafeAreaView style={styles.safe} edges={["top", "left", "right"]}>
+      {/* ── Dropdown Backdrop ────────────────────────────────────────────── */}
+      {filterDropdownOpen && (
+        <Pressable
+          style={styles.dropdownBackdrop}
+          onPress={() => setFilterDropdownOpen(false)}
+        />
+      )}
       {/* ── Header ─────────────────────────────────────────────────────── */}
       <View style={styles.headerWrap}>
         <View style={styles.headerRow}>
@@ -822,41 +974,106 @@ export function DashboardScreen({
       {/* ── Toolbar ─────────────────────────────────────────────────────── */}
       <View style={styles.toolbar}>
         <View style={styles.filterRow}>
-          <Pressable
-            style={[
-              styles.filterBtn,
-              filterStatus === "all" && styles.filterBtnActive,
-            ]}
-            onPress={() => setFilterStatus("all")}
-          >
-            <Text
+          {/* Dropdown anchor */}
+          <View style={styles.dropdownAnchor}>
+            <Pressable
               style={[
-                styles.filterBtnText,
-                filterStatus === "all" && styles.filterBtnTextActive,
+                styles.filterBtn,
+                filterStatus !== "pinned" && styles.filterBtnActive,
               ]}
+              onPress={() => setFilterDropdownOpen((prev) => !prev)}
+              accessibilityRole="button"
+              accessibilityLabel={`Filter farms: ${filterLabel}`}
             >
-              All farms
-            </Text>
-          </Pressable>
+              <Text
+                style={[
+                  styles.filterBtnText,
+                  filterStatus !== "pinned" && styles.filterBtnTextActive,
+                ]}
+              >
+                {filterLabel}
+              </Text>
+              <ChevronDownIcon
+                size={12}
+                color={
+                  filterStatus !== "pinned"
+                    ? colors.foreground
+                    : colors.mutedForeground
+                }
+              />
+            </Pressable>
+
+            {/* Dropdown Menu */}
+            {filterDropdownOpen && (
+              <View style={styles.dropdownMenu}>
+                <Text style={styles.dropdownHeader}>SHOW FARMS</Text>
+                {FILTER_OPTIONS.map((option) => {
+                  const isSelected = filterStatus === option.id;
+                  return (
+                    <Pressable
+                      key={option.id}
+                      style={[
+                        styles.dropdownItem,
+                        isSelected && styles.dropdownItemSelected,
+                      ]}
+                      onPress={() => {
+                        setFilterStatus(option.id);
+                        setFilterDropdownOpen(false);
+                      }}
+                      accessibilityRole="menuitem"
+                    >
+                      <View style={styles.dropdownItemCheck}>
+                        {isSelected && (
+                          <CheckIcon size={14} color={colors.primary} />
+                        )}
+                      </View>
+                      <Text
+                        style={[
+                          styles.dropdownItemText,
+                          isSelected && styles.dropdownItemTextSelected,
+                        ]}
+                      >
+                        {option.label}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            )}
+          </View>
+
+          {/* Pinned Button */}
           <Pressable
             style={[
-              styles.filterBtn,
-              filterStatus === "pinned" && styles.filterBtnActive,
+              styles.pinnedBtn,
+              filterStatus === "pinned" && styles.pinnedBtnActive,
             ]}
             onPress={() =>
               setFilterStatus((p) => (p === "pinned" ? "all" : "pinned"))
             }
+            accessibilityRole="button"
+            accessibilityLabel="Filter pinned farms"
           >
+            <StarIcon
+              size={12}
+              color={
+                filterStatus === "pinned"
+                  ? colors.foreground
+                  : colors.mutedForeground
+              }
+              fill={filterStatus === "pinned" ? colors.foreground : "none"}
+            />
             <Text
               style={[
-                styles.filterBtnText,
-                filterStatus === "pinned" && styles.filterBtnTextActive,
+                styles.pinnedBtnText,
+                filterStatus === "pinned" && styles.pinnedBtnTextActive,
               ]}
             >
-              ⭐ Pinned
+              Pinned
             </Text>
           </Pressable>
         </View>
+
         <View style={styles.toolbarRight}>
           <Pressable
             style={styles.iconBtn}
@@ -867,7 +1084,10 @@ export function DashboardScreen({
             accessibilityRole="button"
             accessibilityLabel="Search"
           >
-            <Text style={styles.iconBtnText}>🔍</Text>
+            <SearchIcon
+              size={17}
+              color={showSearch ? colors.primary : colors.mutedForeground}
+            />
           </Pressable>
           <Pressable
             style={[styles.iconBtn, styles.addBtn]}
@@ -904,19 +1124,45 @@ export function DashboardScreen({
         }
         contentContainerStyle={styles.list}
         ListEmptyComponent={
-          <View style={styles.empty}>
-            <Text style={styles.emptyEmoji}>🌿</Text>
-            <Text style={styles.emptyTitle}>No farms yet</Text>
-            <Text style={styles.emptyBody}>
-              Add your first farm and start tracking its harvest time.
-            </Text>
-            <Pressable style={styles.emptyBtn} onPress={onAddFarm}>
-              <Text style={styles.emptyBtnText}>+ Add your first farm</Text>
-            </Pressable>
-            <Text style={styles.emptyHint}>
-              Your timers keep growing, even when you're away.
-            </Text>
-          </View>
+          farms.length === 0 ? (
+            <View style={styles.empty}>
+              <Text style={styles.emptyEmoji}>🌿</Text>
+              <Text style={styles.emptyTitle}>No farms yet</Text>
+              <Text style={styles.emptyBody}>
+                Add your first farm and start tracking its harvest time.
+              </Text>
+              <Pressable style={styles.emptyBtn} onPress={onAddFarm}>
+                <Text style={styles.emptyBtnText}>+ Add your first farm</Text>
+              </Pressable>
+              <Text style={styles.emptyHint}>
+                Your timers keep growing, even when you're away.
+              </Text>
+            </View>
+          ) : (
+            <View style={styles.emptyFilter}>
+              <Text style={styles.emptyFilterTitle}>
+                {searchQuery.trim()
+                  ? "No matching farms"
+                  : `No ${filterStatus === "all" ? "" : filterStatus} farms`}
+              </Text>
+              <Text style={styles.emptyFilterBody}>
+                {searchQuery.trim()
+                  ? `No farms matched "${searchQuery.trim()}"`
+                  : "Try changing your filter to see more farms."}
+              </Text>
+              <Pressable
+                style={styles.emptyFilterBtn}
+                onPress={() => {
+                  if (searchQuery.trim()) setSearchQuery("");
+                  else setFilterStatus("all");
+                }}
+              >
+                <Text style={styles.emptyFilterBtnText}>
+                  {searchQuery.trim() ? "Clear search" : "Show all farms"}
+                </Text>
+              </Pressable>
+            </View>
+          )
         }
         renderItem={renderItem}
       />
