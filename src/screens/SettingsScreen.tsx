@@ -256,14 +256,12 @@ export function SettingsScreen({ onNavigate }: Props) {
   }, [themeCtx.prefs]);
 
   const updatePrefs = useCallback((patch: Partial<Prefs>) => {
-    setPrefs((current) => {
-      const next = { ...current, ...patch };
-      if (patch.theme) {
-        themeCtx.setPreference(patch.theme).catch(() => {});
-      }
-      themeCtx.updatePrefs(next).catch(() => {});
-      return next;
-    });
+    setPrefs((current) => ({ ...current, ...patch }));
+    if (patch.theme) {
+      themeCtx.setPreference(patch.theme).catch(() => {});
+    } else {
+      themeCtx.updatePrefs({ ...themeCtx.prefs, ...patch }).catch(() => {});
+    }
   }, [themeCtx]);
 
   const account = authState.status === 'authenticated' ? authState.account : null;
@@ -593,7 +591,7 @@ function ConfirmDialog({
 // ─── ThemeOverlay ─────────────────────────────────────────────────────────────
 function ThemeOverlay({ prefs, onUpdate }: { prefs: Prefs; onUpdate: (p: Partial<Prefs>) => void }) {
   const styles = useStyles();
-  const { colors, setPreference } = useTheme();
+  const { colors } = useTheme();
   const themes: Array<{ id: 'dark' | 'light' | 'system'; label: string; bg: string }> = [
     { id: 'dark', label: 'Dark', bg: '#0d1715' },
     { id: 'light', label: 'Light', bg: '#edf2e8' },
@@ -607,7 +605,6 @@ function ThemeOverlay({ prefs, onUpdate }: { prefs: Prefs; onUpdate: (p: Partial
           <Pressable
             key={id}
             onPress={() => {
-              setPreference(id);
               onUpdate({ theme: id });
             }}
             style={[styles.themeCard, active ? styles.themeCardActive : styles.themeCardInactive]}
