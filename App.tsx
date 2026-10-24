@@ -13,7 +13,7 @@ import { SeedManagerScreen } from './src/screens/SeedManagerScreen';
 import { SettingsScreen } from './src/screens/SettingsScreen';
 import { SplashScreen } from './src/screens/SplashScreen';
 import { StoreProvider, useStore } from './src/store';
-import { colors } from './src/theme';
+import { ThemeProvider, useTheme } from './src/theme';
 import type { Route } from './src/types';
 
 // Prevent the native splash from auto-hiding before fonts are ready.
@@ -21,13 +21,14 @@ ExpoSplashScreen.preventAutoHideAsync();
 
 function Root() {
   const { ready } = useStore();
+  const { colors } = useTheme();
   const [route, setRoute] = useState<Route>({ name: 'dashboard' });
 
   const navigate = (r: Route) => setRoute(r);
 
   // While store is loading, render blank — SplashScreen covers the screen.
   if (!ready) {
-    return <View style={styles.boot} />;
+    return <View style={{ flex: 1, backgroundColor: colors.bg }} />;
   }
 
   if (route.name === 'farm-form') {
@@ -76,17 +77,19 @@ function Root() {
 // ─── AppGate: reads auth state, shows Login or Root ──────────────────────────
 function AppGate() {
   const { authState } = useAuth();
+  const { scheme, colors } = useTheme();
   const [authPage, setAuthPage] = useState<AuthPage>('login');
+  const statusBarStyle = scheme === 'dark' ? 'light' : 'dark';
 
   // While checking persisted session — show blank bg, no flash of Login
   if (authState.status === 'loading') {
-    return <View style={styles.boot} />;
+    return <View style={{ flex: 1, backgroundColor: colors.bg }} />;
   }
 
   if (authState.status === 'unauthenticated') {
     return (
       <SafeAreaProvider>
-        <StatusBar style="light" />
+        <StatusBar style={statusBarStyle} />
         <AuthScreen
           page={authPage}
           onNavigate={setAuthPage}
@@ -102,14 +105,17 @@ function AppGate() {
   return (
     <SafeAreaProvider>
       <StoreProvider>
-        <StatusBar style="light" />
+        <StatusBar style={statusBarStyle} />
         <Root />
       </StoreProvider>
     </SafeAreaProvider>
   );
 }
 
-export default function App() {
+function AppRoot() {
+  const { scheme, colors, isReady } = useTheme();
+  const statusBarStyle = scheme === 'dark' ? 'light' : 'dark';
+
   const [fontsLoaded] = useFonts({
     'PixelifySans-Regular': require('./assets/fonts/PixelifySans-Regular.ttf'),
     'PixelifySans-Bold': require('./assets/fonts/PixelifySans-Bold.ttf'),
@@ -146,10 +152,10 @@ export default function App() {
     }
   }, [fontsLoaded]);
 
-  // Fonts not yet loaded — show splash (covers native splash seamlessly)
-  if (!fontsLoaded && showSplash) {
+  // Fonts not yet loaded or prefs not ready — show splash
+  if (!isReady || (!fontsLoaded && showSplash)) {
     return (
-      <View style={styles.boot}>
+      <View style={{ flex: 1, backgroundColor: colors.bg }}>
         <SplashScreen onFinish={handleSplashFinish} />
       </View>
     );
@@ -159,7 +165,7 @@ export default function App() {
   if (showSplash) {
     return (
       <SafeAreaProvider>
-        <StatusBar style="light" />
+        <StatusBar style={statusBarStyle} />
         <SplashScreen onFinish={handleSplashFinish} />
       </SafeAreaProvider>
     );
@@ -172,9 +178,10 @@ export default function App() {
   );
 }
 
-const styles = StyleSheet.create({
-  boot: {
-    flex: 1,
-    backgroundColor: colors.bg,
-  },
-});
+export default function App() {
+  return (
+    <ThemeProvider>
+      <AppRoot />
+    </ThemeProvider>
+  );
+}

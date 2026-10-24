@@ -1,3 +1,5 @@
+export * from './theme/index';
+
 export const colors = {
   // Figma design system — exact values from CSS :root
   bg: '#0d1715',

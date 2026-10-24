@@ -9,7 +9,10 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useStore } from '../store';
-import { colors, fonts, radius, spacing } from '../theme';
+import { fonts, radius, spacing } from '../theme';
+import { useTheme } from '../theme/ThemeContext';
+import { makeStyles } from '../theme/makeStyles';
+import { withAlpha } from '../theme/withAlpha';
 import { confirmAction } from '../utils/confirm';
 import { minutesToDHM, parseNonNegInt } from '../utils/time';
 
@@ -18,7 +21,134 @@ type Props = {
   onBack: () => void;
 };
 
+const useStyles = makeStyles(({ colors }) => ({
+  safe: {
+    flex: 1,
+    backgroundColor: colors.bg,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  closeBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  closeBtnText: {
+    color: colors.mutedForeground,
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  title: {
+    flex: 1,
+    textAlign: 'center',
+    color: colors.foreground,
+    fontSize: 27,
+    fontWeight: '600',
+    fontFamily: fonts.pixel,
+  },
+  headerSpacer: {
+    width: 36,
+  },
+  scroll: {
+    padding: spacing.md,
+    paddingBottom: 40,
+    gap: spacing.md,
+  },
+  fieldWrap: {
+    gap: 6,
+  },
+  fieldLabel: {
+    color: colors.mutedForeground,
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  input: {
+    backgroundColor: colors.muted,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    color: colors.foreground,
+    minHeight: 48,
+    paddingHorizontal: spacing.md,
+    fontSize: 16,
+    fontFamily: fonts.bodySemiBold,
+  },
+  sectionLabel: {
+    color: colors.foreground,
+    fontWeight: '700',
+    fontSize: 14,
+  },
+  dhmRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+  dhmCell: {
+    flex: 1,
+    alignItems: 'center',
+    gap: 4,
+  },
+  dhmInput: {
+    backgroundColor: colors.muted,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    color: colors.foreground,
+    height: 64,
+    width: '100%',
+    fontSize: 28,
+    fontWeight: '700',
+    textAlign: 'center',
+  },
+  dhmLabel: {
+    color: colors.mutedForeground,
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  error: {
+    color: colors.destruct,
+    fontSize: 13,
+  },
+  saveBtn: {
+    backgroundColor: colors.primary,
+    borderRadius: 10,
+    minHeight: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  saveBtnText: {
+    color: colors.primaryForeground,
+    fontWeight: '700',
+    fontSize: 16,
+    fontFamily: fonts.bodyBold,
+  },
+  deleteBtn: {
+    backgroundColor: withAlpha(colors.destruct, 0.10),
+    borderWidth: 1,
+    borderColor: colors.destruct,
+    borderRadius: 10,
+    minHeight: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  deleteBtnText: {
+    color: colors.destruct,
+    fontWeight: '700',
+    fontSize: 15,
+  },
+}));
+
 export function SeedFormScreen({ seedId, onBack }: Props) {
+  const styles = useStyles();
+  const { colors } = useTheme();
   const { seeds, addSeed, updateSeed, deleteSeed } = useStore();
   const existing = seedId ? seeds.find((s) => s.id === seedId) : undefined;
   const [name, setName] = useState(existing?.name ?? '');
@@ -146,128 +276,3 @@ export function SeedFormScreen({ seedId, onBack }: Props) {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-    backgroundColor: colors.bg,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  closeBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: colors.surface,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  closeBtnText: {
-    color: colors.mutedForeground,
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  title: {
-    flex: 1,
-    textAlign: 'center',
-    color: colors.foreground,
-    fontSize: 27,
-    fontWeight: '600',
-    fontFamily: fonts.pixel,
-  },
-  headerSpacer: {
-    width: 36,
-  },
-  scroll: {
-    padding: spacing.md,
-    paddingBottom: 40,
-    gap: spacing.md,
-  },
-  fieldWrap: {
-    gap: 6,
-  },
-  fieldLabel: {
-    color: colors.mutedForeground,
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  input: {
-    backgroundColor: colors.muted,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
-    color: colors.foreground,
-    minHeight: 48,
-    paddingHorizontal: spacing.md,
-    fontSize: 16,
-    fontFamily: fonts.bodySemiBold,
-  },
-  sectionLabel: {
-    color: colors.foreground,
-    fontWeight: '700',
-    fontSize: 14,
-  },
-  dhmRow: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-  },
-  dhmCell: {
-    flex: 1,
-    alignItems: 'center',
-    gap: 4,
-  },
-  dhmInput: {
-    backgroundColor: colors.muted,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: colors.border,
-    color: colors.foreground,
-    height: 64,
-    width: '100%',
-    fontSize: 28,
-    fontWeight: '700',
-    textAlign: 'center',
-  },
-  dhmLabel: {
-    color: colors.mutedForeground,
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  error: {
-    color: colors.destruct,
-    fontSize: 13,
-  },
-  saveBtn: {
-    backgroundColor: colors.primary,
-    borderRadius: 10,
-    minHeight: 48,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  saveBtnText: {
-    color: colors.primaryForeground,
-    fontWeight: '700',
-    fontSize: 16,
-    fontFamily: fonts.bodyBold,
-  },
-  deleteBtn: {
-    backgroundColor: 'rgba(233,106,106,0.10)',
-    borderWidth: 1,
-    borderColor: colors.destruct,
-    borderRadius: 10,
-    minHeight: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  deleteBtnText: {
-    color: colors.destruct,
-    fontWeight: '700',
-    fontSize: 15,
-  },
-});

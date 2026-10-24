@@ -31,7 +31,10 @@ import {
   saveProfile,
   startSession,
 } from '../auth/authStorage';
-import { colors, fonts } from '../theme';
+import { fonts } from '../theme';
+import { useTheme } from '../theme/ThemeContext';
+import { makeStyles } from '../theme/makeStyles';
+import { withAlpha } from '../theme/withAlpha';
 import {
   ArrowLeftIcon,
   ArrowRightIcon,
@@ -57,13 +60,102 @@ type Errors = Partial<Record<FieldKey, string>>;
 type Values = { name: string; email: string; password: string; confirm: string };
 
 // ─── Design tokens ─────────────────────────────────────────────────────────────
-const INPUT_BG = colors.input;               // #1c2b27
-const INPUT_BORDER = colors.border;          // #2a3c35
-const INPUT_BORDER_FOCUS = colors.primary;   // #45d483
-const INPUT_BORDER_ERROR = colors.destruct;  // #e96a6a
-const FOCUS_RING_WEB = 'rgba(69,212,131,0.15)';
 const STRENGTH_COLORS: string[] = ['', '#e96a6a', '#e6c16a', '#4ca8ff', '#45d483'];
 const cssEaseOut = Easing.out(Easing.ease);
+
+const useFldStyles = makeStyles(({ colors }) => ({
+  label: { fontSize: 13, fontFamily: fonts.bodySemiBold, color: colors.foreground, marginBottom: 8, includeFontPadding: false },
+  inputWrapper: { position: 'relative' },
+  input: { width: '100%', minHeight: 48, borderRadius: 12, borderWidth: 1, backgroundColor: colors.input, paddingHorizontal: 16, fontSize: 14, fontFamily: fonts.body, color: colors.foreground, includeFontPadding: false },
+  inputPassword: { paddingRight: 48 },
+  eyeBtn: { position: 'absolute', right: 4, top: 0, width: 48, height: 48, alignItems: 'center', justifyContent: 'center' },
+  errorRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 6, marginTop: 6 },
+  errorIcon: { marginTop: 4 },
+  errorText: { flex: 1, fontSize: 12, lineHeight: 20, color: colors.destruct, fontFamily: fonts.body, includeFontPadding: false },
+}));
+
+const useStyles = makeStyles(({ colors }) => ({
+  flex: { flex: 1, backgroundColor: colors.bg },
+  scrollContent: { flexGrow: 1 },
+  container: {
+    flex: 1,
+    width: '100%',
+    maxWidth: 460,
+    alignSelf: 'center',
+    paddingHorizontal: 20,
+    backgroundColor: colors.bg,
+    ...(Platform.OS === 'web' ? ({ borderLeftWidth: 1, borderRightWidth: 1, borderColor: withAlpha(colors.border, 0.70) } as object) : {}),
+  },
+  header: { flexDirection: 'row', alignItems: 'center' },
+  headerCenter: { justifyContent: 'center' },
+  headerBetween: { justifyContent: 'space-between' },
+  backBtn: { width: 44, height: 44, borderRadius: 12, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
+  headerSpacer: { width: 44, height: 44 },
+  logo: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  logoText: { fontFamily: fonts.pixelSemiBold, fontSize: 23, color: colors.primary, includeFontPadding: false, lineHeight: 28 },
+  logoDot: { color: colors.accentBlue },
+  farmVisual: { position: 'relative', width: 240, alignSelf: 'center', alignItems: 'center', justifyContent: 'flex-end' },
+  farmRow: { position: 'absolute', bottom: 24, width: 192, flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-around', paddingHorizontal: 16 },
+  pepperSeed: { width: 28, height: 28, marginBottom: 4 },
+  farmSproutMid: { marginBottom: 4 },
+  farmCenter: { flexDirection: 'column', alignItems: 'center' },
+  pepperItem: { width: 36, height: 36 },
+  groundBar: { position: 'absolute', bottom: 0, width: 192, borderTopWidth: 2, borderTopColor: withAlpha(colors.primary, 0.60) },
+  groundGrid: { flexDirection: 'row', flexWrap: 'wrap' },
+  groundSpan: { width: 16, height: 12 },
+  headingBlock: { alignItems: 'center', marginTop: 20 },
+  headingBlockLogin: { marginBottom: 24 },
+  headingBlockSignup: { marginBottom: 16 },
+  h1: { fontFamily: fonts.pixel, fontSize: 32, lineHeight: 40, color: colors.foreground, textAlign: 'center', includeFontPadding: false },
+  subtitle: { fontSize: 13, lineHeight: 20, color: colors.mutedForeground, textAlign: 'center', marginTop: 8, maxWidth: 320, fontFamily: fonts.body, includeFontPadding: false },
+  form: {},
+  formLogin: { gap: 16 },
+  formSignup: { gap: 12 },
+  strengthContainer: { marginTop: -4 },
+  strengthBars: { flexDirection: 'row', gap: 6 },
+  strengthBar: { flex: 1, height: 4, borderRadius: 4 },
+  strengthHint: { fontSize: 11, color: colors.mutedForeground, fontFamily: fonts.body, includeFontPadding: false, marginTop: 6 },
+  rememberRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  rememberLabel: { flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 44 },
+  rememberText: { fontSize: 12, color: colors.mutedForeground, fontFamily: fonts.body, includeFontPadding: false },
+  forgotBtn: { minHeight: 44, justifyContent: 'center' },
+  forgotText: { fontSize: 12, fontFamily: fonts.bodySemiBold, color: colors.accentBlue, includeFontPadding: false },
+  checkbox: { width: 16, height: 16, borderRadius: 3, borderWidth: 1.5, borderColor: colors.mutedForeground, alignItems: 'center', justifyContent: 'center' },
+  checkboxChecked: { backgroundColor: colors.primary, borderColor: colors.primary },
+  checkmark: { color: colors.primaryForeground, fontSize: 10, lineHeight: 12, includeFontPadding: false },
+  agreementRow: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 44 },
+  agreementText: { flex: 1, fontSize: 12, lineHeight: 20, color: colors.mutedForeground, fontFamily: fonts.body, includeFontPadding: false },
+  agreementLink: { color: colors.accentBlue, textDecorationLine: 'underline', textDecorationColor: withAlpha(colors.accentBlue, 0.40) },
+  primaryBtn: { flexDirection: 'row', minHeight: 48, width: '100%', alignItems: 'center', justifyContent: 'center', gap: 8, borderRadius: 10, backgroundColor: colors.primary, paddingHorizontal: 16 },
+  primaryBtnDisabled: { opacity: 0.6 },
+  primaryBtnText: { fontSize: 14, fontFamily: fonts.bodySemiBold, color: colors.primaryForeground, includeFontPadding: false },
+  pressed: { opacity: 0.85, transform: [{ scale: 0.98 }] },
+  orDivider: { flexDirection: 'row', alignItems: 'center', gap: 12, marginVertical: 20 },
+  dividerLine: { flex: 1, height: 1, backgroundColor: colors.border },
+  orText: { fontSize: 10, letterSpacing: 0.5, color: colors.mutedForeground, fontFamily: fonts.body, includeFontPadding: false },
+  googleBtn: { flexDirection: 'row', minHeight: 48, width: '100%', alignItems: 'center', justifyContent: 'center', gap: 12, borderRadius: 10, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.card, paddingHorizontal: 16 },
+  googleBtnText: { fontSize: 14, fontFamily: fonts.body, color: colors.foreground, includeFontPadding: false },
+  noticeRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, marginTop: 12 },
+  noticeIcon: { marginTop: 2 },
+  noticeText: { flex: 1, fontSize: 12, lineHeight: 20, color: colors.mutedForeground, fontFamily: fonts.body, includeFontPadding: false },
+  footer: { marginTop: 16, alignItems: 'center' },
+  switchText: { fontSize: 12, color: colors.mutedForeground, fontFamily: fonts.body, includeFontPadding: false },
+  switchLink: { fontFamily: fonts.bodySemiBold, color: colors.primary },
+  guestBtn: { flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 44 },
+  guestBtnText: { fontSize: 13, color: colors.mutedForeground, fontFamily: fonts.body, includeFontPadding: false },
+  guestInfo: { fontSize: 10, color: withAlpha(colors.mutedForeground, 0.80), fontFamily: fonts.body, includeFontPadding: false },
+  sentContainer: { alignItems: 'center', paddingVertical: 20 },
+  sentIconWrap: { width: 56, height: 56, borderRadius: 16, backgroundColor: withAlpha(colors.primary, 0.10), alignItems: 'center', justifyContent: 'center', marginBottom: 16 },
+  sentTitle: { fontFamily: fonts.pixel, fontSize: 24, color: colors.foreground, includeFontPadding: false },
+  sentBody: { fontSize: 14, color: colors.mutedForeground, fontFamily: fonts.body, textAlign: 'center', marginTop: 8, includeFontPadding: false },
+  sentEmail: { fontFamily: fonts.bodySemiBold, color: colors.foreground },
+  sentNote: { fontSize: 12, lineHeight: 20, color: colors.mutedForeground, fontFamily: fonts.body, textAlign: 'center', marginTop: 12, includeFontPadding: false },
+  linkBtn: { marginTop: 8, minHeight: 44, justifyContent: 'center' },
+  linkText: { fontSize: 12, fontFamily: fonts.body, includeFontPadding: false },
+  details: { marginTop: 24, borderTopWidth: 1, borderTopColor: colors.border, paddingTop: 12 },
+  detailsText: { fontSize: 11, lineHeight: 20, color: colors.mutedForeground, fontFamily: fonts.body, includeFontPadding: false },
+  detailsHighlight: { color: colors.foreground },
+}));
 
 // ─── AuthField (proper sub-component so useState is valid) ────────────────────
 type AuthFieldProps = {
@@ -93,6 +185,8 @@ function AuthField({
   onToggleVisible,
   onSubmitEditing,
 }: AuthFieldProps) {
+  const fldStyles = useFldStyles();
+  const { colors } = useTheme();
   const [isFocused, setIsFocused] = useState(false);
   const hasError = Boolean(error);
 
@@ -110,9 +204,9 @@ function AuthField({
     fieldKey === 'confirm' ? 'Re-enter your password' :
     'Enter your password';
 
-  const borderColor = hasError ? INPUT_BORDER_ERROR : isFocused ? INPUT_BORDER_FOCUS : INPUT_BORDER;
+  const borderColor = hasError ? colors.destruct : isFocused ? colors.primary : colors.border;
   const webStyle = Platform.OS === 'web'
-    ? ({ outlineStyle: 'none', ...(isFocused ? { boxShadow: `0 0 0 2px ${FOCUS_RING_WEB}` } : {}) } as object)
+    ? ({ outlineStyle: 'none', ...(isFocused ? { boxShadow: `0 0 0 2px ${withAlpha(colors.primary, 0.15)}` } : {}) } as object)
     : {};
 
   return (
@@ -125,7 +219,7 @@ function AuthField({
             fldStyles.input,
             ...(isPassword ? [fldStyles.inputPassword] : []),
             { borderColor },
-            ...(Platform.OS === 'web' ? [{ outlineStyle: 'none', ...(isFocused ? { boxShadow: `0 0 0 2px ${FOCUS_RING_WEB}` } : {}) } as object] : []),
+            ...(Platform.OS === 'web' ? [{ outlineStyle: 'none', ...(isFocused ? { boxShadow: `0 0 0 2px ${withAlpha(colors.primary, 0.15)}` } : {}) } as object] : []),
           ] as object[]}
           value={value}
           onChangeText={onChangeText}
@@ -159,19 +253,11 @@ function AuthField({
   );
 }
 
-const fldStyles = StyleSheet.create({
-  label: { fontSize: 13, fontFamily: fonts.bodySemiBold, color: colors.foreground, marginBottom: 8, includeFontPadding: false },
-  inputWrapper: { position: 'relative' },
-  input: { width: '100%', minHeight: 48, borderRadius: 12, borderWidth: 1, backgroundColor: INPUT_BG, paddingHorizontal: 16, fontSize: 14, fontFamily: fonts.body, color: colors.foreground, includeFontPadding: false },
-  inputPassword: { paddingRight: 48 },
-  eyeBtn: { position: 'absolute', right: 4, top: 0, width: 48, height: 48, alignItems: 'center', justifyContent: 'center' },
-  errorRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 6, marginTop: 6 },
-  errorIcon: { marginTop: 4 },
-  errorText: { flex: 1, fontSize: 12, lineHeight: 20, color: colors.destruct, fontFamily: fonts.body, includeFontPadding: false },
-});
-
 // ─── AuthScreen ───────────────────────────────────────────────────────────────
 export function AuthScreen({ page, onNavigate, onAuthSuccess }: Props) {
+  const styles = useStyles();
+  const fldStyles = useFldStyles();
+  const { colors } = useTheme();
   const { setAccount } = useAuth();
   const insets = useSafeAreaInsets();
   const signup = page === 'signup';
@@ -493,6 +579,8 @@ export function AuthScreen({ page, onNavigate, onAuthSuccess }: Props) {
 
 // ─── GrowTrackLogo ────────────────────────────────────────────────────────────
 function GrowTrackLogo() {
+  const styles = useStyles();
+  const { colors } = useTheme();
   return (
     <View style={styles.logo}>
       <SproutIcon size={21} color={colors.primary} />
@@ -503,15 +591,17 @@ function GrowTrackLogo() {
 
 // ─── FarmVisual ───────────────────────────────────────────────────────────────
 function FarmVisual({ compact }: { compact: boolean }) {
+  const styles = useStyles();
+  const { colors } = useTheme();
   const height = compact ? 80 : 112;
   const spans = Array.from({ length: 24 }, (_, i) =>
-    i % 3 === 0 ? 'rgba(69,212,131,0.15)' : i % 3 === 1 ? colors.secondary : colors.card
+    i % 3 === 0 ? withAlpha(colors.primary, 0.15) : i % 3 === 1 ? colors.secondary : colors.card
   );
   return (
     <View style={[styles.farmVisual, { height }]}>
       <View style={styles.farmRow}>
         <Image source={require('../../assets/items/pepper-seed.webp')} style={styles.pepperSeed} resizeMode="contain" />
-        <View style={styles.farmSproutMid}><SproutIcon size={35} color="rgba(69,212,131,0.8)" strokeWidth={1.5 / (35 / 24)} /></View>
+        <View style={styles.farmSproutMid}><SproutIcon size={35} color={withAlpha(colors.primary, 0.80)} strokeWidth={1.5 / (35 / 24)} /></View>
         <View style={styles.farmCenter}>
           <Image source={require('../../assets/items/pepper-item.webp')} style={styles.pepperItem} resizeMode="contain" />
           <View style={{ marginTop: -4 }}><SproutIcon size={29} color={colors.primary} strokeWidth={1.5 / (29 / 24)} /></View>
@@ -525,87 +615,3 @@ function FarmVisual({ compact }: { compact: boolean }) {
     </View>
   );
 }
-
-// ─── Styles ───────────────────────────────────────────────────────────────────
-const styles = StyleSheet.create({
-  flex: { flex: 1, backgroundColor: colors.bg },
-  scrollContent: { flexGrow: 1 },
-  container: {
-    flex: 1,
-    width: '100%',
-    maxWidth: 460,
-    alignSelf: 'center',
-    paddingHorizontal: 20,
-    backgroundColor: colors.bg,
-    ...(Platform.OS === 'web' ? ({ borderLeftWidth: 1, borderRightWidth: 1, borderColor: 'rgba(42,60,53,0.7)' } as object) : {}),
-  },
-  header: { flexDirection: 'row', alignItems: 'center' },
-  headerCenter: { justifyContent: 'center' },
-  headerBetween: { justifyContent: 'space-between' },
-  backBtn: { width: 44, height: 44, borderRadius: 12, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
-  headerSpacer: { width: 44, height: 44 },
-  logo: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  logoText: { fontFamily: fonts.pixelSemiBold, fontSize: 23, color: colors.primary, includeFontPadding: false, lineHeight: 28 },
-  logoDot: { color: colors.accentBlue },
-  farmVisual: { position: 'relative', width: 240, alignSelf: 'center', alignItems: 'center', justifyContent: 'flex-end' },
-  farmRow: { position: 'absolute', bottom: 24, width: 192, flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-around', paddingHorizontal: 16 },
-  pepperSeed: { width: 28, height: 28, marginBottom: 4 },
-  farmSproutMid: { marginBottom: 4 },
-  farmCenter: { flexDirection: 'column', alignItems: 'center' },
-  pepperItem: { width: 36, height: 36 },
-  groundBar: { position: 'absolute', bottom: 0, width: 192, borderTopWidth: 2, borderTopColor: 'rgba(69,212,131,0.6)' },
-  groundGrid: { flexDirection: 'row', flexWrap: 'wrap' },
-  groundSpan: { width: 16, height: 12 },
-  headingBlock: { alignItems: 'center', marginTop: 20 },
-  headingBlockLogin: { marginBottom: 24 },
-  headingBlockSignup: { marginBottom: 16 },
-  h1: { fontFamily: fonts.pixel, fontSize: 32, lineHeight: 40, color: colors.foreground, textAlign: 'center', includeFontPadding: false },
-  subtitle: { fontSize: 13, lineHeight: 20, color: colors.mutedForeground, textAlign: 'center', marginTop: 8, maxWidth: 320, fontFamily: fonts.body, includeFontPadding: false },
-  form: {},
-  formLogin: { gap: 16 },
-  formSignup: { gap: 12 },
-  strengthContainer: { marginTop: -4 },
-  strengthBars: { flexDirection: 'row', gap: 6 },
-  strengthBar: { flex: 1, height: 4, borderRadius: 4 },
-  strengthHint: { fontSize: 11, color: colors.mutedForeground, fontFamily: fonts.body, includeFontPadding: false, marginTop: 6 },
-  rememberRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  rememberLabel: { flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 44 },
-  rememberText: { fontSize: 12, color: colors.mutedForeground, fontFamily: fonts.body, includeFontPadding: false },
-  forgotBtn: { minHeight: 44, justifyContent: 'center' },
-  forgotText: { fontSize: 12, fontFamily: fonts.bodySemiBold, color: colors.accentBlue, includeFontPadding: false },
-  checkbox: { width: 16, height: 16, borderRadius: 3, borderWidth: 1.5, borderColor: colors.mutedForeground, alignItems: 'center', justifyContent: 'center' },
-  checkboxChecked: { backgroundColor: colors.primary, borderColor: colors.primary },
-  checkmark: { color: colors.primaryForeground, fontSize: 10, lineHeight: 12, includeFontPadding: false },
-  agreementRow: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 44 },
-  agreementText: { flex: 1, fontSize: 12, lineHeight: 20, color: colors.mutedForeground, fontFamily: fonts.body, includeFontPadding: false },
-  agreementLink: { color: colors.accentBlue, textDecorationLine: 'underline', textDecorationColor: 'rgba(76,168,255,0.4)' },
-  primaryBtn: { flexDirection: 'row', minHeight: 48, width: '100%', alignItems: 'center', justifyContent: 'center', gap: 8, borderRadius: 10, backgroundColor: colors.primary, paddingHorizontal: 16 },
-  primaryBtnDisabled: { opacity: 0.6 },
-  primaryBtnText: { fontSize: 14, fontFamily: fonts.bodySemiBold, color: colors.primaryForeground, includeFontPadding: false },
-  pressed: { opacity: 0.85, transform: [{ scale: 0.98 }] },
-  orDivider: { flexDirection: 'row', alignItems: 'center', gap: 12, marginVertical: 20 },
-  dividerLine: { flex: 1, height: 1, backgroundColor: colors.border },
-  orText: { fontSize: 10, letterSpacing: 0.5, color: colors.mutedForeground, fontFamily: fonts.body, includeFontPadding: false },
-  googleBtn: { flexDirection: 'row', minHeight: 48, width: '100%', alignItems: 'center', justifyContent: 'center', gap: 12, borderRadius: 10, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.card, paddingHorizontal: 16 },
-  googleBtnText: { fontSize: 14, fontFamily: fonts.body, color: colors.foreground, includeFontPadding: false },
-  noticeRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, marginTop: 12 },
-  noticeIcon: { marginTop: 2 },
-  noticeText: { flex: 1, fontSize: 12, lineHeight: 20, color: colors.mutedForeground, fontFamily: fonts.body, includeFontPadding: false },
-  footer: { marginTop: 16, alignItems: 'center' },
-  switchText: { fontSize: 12, color: colors.mutedForeground, fontFamily: fonts.body, includeFontPadding: false },
-  switchLink: { fontFamily: fonts.bodySemiBold, color: colors.primary },
-  guestBtn: { flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 44 },
-  guestBtnText: { fontSize: 13, color: colors.mutedForeground, fontFamily: fonts.body, includeFontPadding: false },
-  guestInfo: { fontSize: 10, color: 'rgba(145,166,157,0.8)', fontFamily: fonts.body, includeFontPadding: false },
-  sentContainer: { alignItems: 'center', paddingVertical: 20 },
-  sentIconWrap: { width: 56, height: 56, borderRadius: 16, backgroundColor: 'rgba(69,212,131,0.1)', alignItems: 'center', justifyContent: 'center', marginBottom: 16 },
-  sentTitle: { fontFamily: fonts.pixel, fontSize: 24, color: colors.foreground, includeFontPadding: false },
-  sentBody: { fontSize: 14, color: colors.mutedForeground, fontFamily: fonts.body, textAlign: 'center', marginTop: 8, includeFontPadding: false },
-  sentEmail: { fontFamily: fonts.bodySemiBold, color: colors.foreground },
-  sentNote: { fontSize: 12, lineHeight: 20, color: colors.mutedForeground, fontFamily: fonts.body, textAlign: 'center', marginTop: 12, includeFontPadding: false },
-  linkBtn: { marginTop: 8, minHeight: 44, justifyContent: 'center' },
-  linkText: { fontSize: 12, fontFamily: fonts.body, includeFontPadding: false },
-  details: { marginTop: 24, borderTopWidth: 1, borderTopColor: colors.border, paddingTop: 12 },
-  detailsText: { fontSize: 11, lineHeight: 20, color: colors.mutedForeground, fontFamily: fonts.body, includeFontPadding: false },
-  detailsHighlight: { color: colors.foreground },
-});

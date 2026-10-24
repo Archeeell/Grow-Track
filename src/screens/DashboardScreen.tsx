@@ -15,7 +15,10 @@ import { FarmCard } from "../components/FarmCard";
 import { TabBar } from "../components/TabBar";
 import { useNow } from "../hooks/useNow";
 import { useStore } from "../store";
-import { colors, fonts, radius, spacing } from "../theme";
+import { fonts, radius, spacing } from "../theme";
+import { useTheme } from "../theme/ThemeContext";
+import { makeStyles } from "../theme/makeStyles";
+import { withAlpha } from "../theme/withAlpha";
 import type { Farm, HarvestStatus, Route, Seed } from "../types";
 import { confirmAction } from "../utils/confirm";
 import {
@@ -67,12 +70,466 @@ type ListItem =
   | { type: "section"; status: HarvestStatus; count: number }
   | { type: "farm"; farm: Farm; status: HarvestStatus };
 
+const useStyles = makeStyles(({ colors }) => ({
+  safe: {
+    flex: 1,
+    backgroundColor: colors.bg,
+  },
+
+  // ── Header ──────────────────────────────────────────────────────────────
+  headerWrap: {
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.sm,
+    paddingBottom: spacing.sm,
+    gap: 2,
+  },
+  headerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 6,
+  },
+  logoRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  logoEmoji: {
+    fontSize: 21,
+    color: colors.primary,
+  },
+  logoText: {
+    color: colors.foreground,
+    fontSize: 23,
+    fontWeight: "600",
+    fontFamily: fonts.pixel,
+  },
+  logoDot: {
+    color: colors.accentBlue,
+  },
+  settingsBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: radius.md,
+    backgroundColor: colors.card,
+    borderWidth: 1,
+    borderColor: colors.border,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  settingsIcon: {
+    fontSize: 18,
+  },
+  subtitle: {
+    color: colors.mutedForeground,
+    fontSize: 12,
+    marginBottom: 4,
+    fontFamily: fonts.body,
+  },
+  greeting: {
+    color: colors.foreground,
+    fontSize: 28,
+    fontWeight: "600",
+    fontFamily: fonts.pixel,
+    lineHeight: 34,
+  },
+  farmSummary: {
+    color: colors.mutedForeground,
+    fontSize: 12,
+    marginTop: 6,
+    fontFamily: fonts.body,
+  },
+
+  // ── Stats ────────────────────────────────────────────────────────────────
+  statsRow: {
+    flexDirection: "row",
+    marginHorizontal: spacing.lg,
+    backgroundColor: colors.card,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    marginBottom: spacing.sm,
+    marginTop: spacing.sm,
+  },
+  statCell: {
+    flex: 1,
+    paddingVertical: 16,
+    paddingHorizontal: spacing.md,
+    minHeight: 44,
+  },
+  statLabelRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginBottom: 4,
+  },
+  statIcon: {
+    fontSize: 14,
+  },
+  statCellLabel: {
+    fontSize: 10,
+    fontWeight: "700",
+    fontFamily: fonts.bodyBold,
+    letterSpacing: 0.5,
+  },
+  statDivider: {
+    width: 1,
+    backgroundColor: colors.border,
+    alignSelf: "stretch",
+  },
+  statNum: {
+    fontSize: 31,
+    fontFamily: fonts.pixel,
+    lineHeight: 36,
+    letterSpacing: 1,
+  },
+
+  // ── Toolbar ──────────────────────────────────────────────────────────────
+  toolbar: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: spacing.lg,
+    marginBottom: spacing.xs,
+    gap: spacing.sm,
+  },
+  filterRow: {
+    flexDirection: "row",
+    gap: 4,
+    flex: 1,
+  },
+  filterBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 0,
+    minHeight: 44,
+    borderRadius: 10,
+    backgroundColor: colors.secondary,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  filterBtnActive: {
+    backgroundColor: colors.secondary,
+    borderWidth: 1,
+    borderColor: colors.primary,
+  },
+  filterBtnText: {
+    color: colors.foreground,
+    fontSize: 12,
+    fontWeight: "600",
+    fontFamily: fonts.bodySemiBold,
+  },
+  filterBtnTextActive: {
+    color: colors.primary,
+  },
+  toolbarRight: {
+    flexDirection: "row",
+    gap: 4,
+    alignItems: "center",
+  },
+  iconBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  iconBtnText: {
+    fontSize: 17,
+    color: colors.mutedForeground,
+  },
+  addBtn: {
+    width: "auto",
+    paddingHorizontal: 12,
+    backgroundColor: colors.primary,
+    borderRadius: 10,
+  },
+  addBtnText: {
+    color: colors.primaryForeground,
+    fontWeight: "600",
+    fontSize: 12,
+    fontFamily: fonts.bodySemiBold,
+  },
+
+  // ── Search ───────────────────────────────────────────────────────────────
+  searchWrap: {
+    paddingHorizontal: spacing.lg,
+    marginBottom: spacing.xs,
+  },
+  searchInput: {
+    backgroundColor: colors.card,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    color: colors.foreground,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 10,
+    fontSize: 14,
+    fontFamily: fonts.body,
+  },
+
+  // ── Section headers ────────────────────────────────────────────────────
+  sectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginBottom: spacing.sm,
+    marginTop: 4,
+  },
+  sectionLabel: {
+    fontSize: 10,
+    fontWeight: "700",
+    fontFamily: fonts.bodyBold,
+    letterSpacing: 1.2,
+  },
+  sectionCount: {
+    fontSize: 10,
+    color: colors.mutedForeground,
+    fontWeight: "600",
+    fontFamily: fonts.bodySemiBold,
+    opacity: 0.6,
+  },
+
+  // ── Farm List ────────────────────────────────────────────────────────────
+  list: {
+    gap: spacing.sm,
+    paddingHorizontal: spacing.lg,
+    paddingBottom: 16,
+    paddingTop: 8,
+  },
+
+  // ── Empty ────────────────────────────────────────────────────────────────
+  empty: {
+    paddingVertical: 60,
+    alignItems: "center",
+    gap: spacing.sm,
+  },
+  emptyEmoji: {
+    fontSize: 48,
+    marginBottom: 8,
+  },
+  emptyTitle: {
+    color: colors.foreground,
+    fontSize: 20,
+    fontWeight: "700",
+    fontFamily: fonts.bodyBold,
+  },
+  emptyBody: {
+    color: colors.mutedForeground,
+    fontSize: 14,
+    textAlign: "center",
+    maxWidth: 260,
+    lineHeight: 20,
+    fontFamily: fonts.body,
+  },
+  emptyBtn: {
+    backgroundColor: colors.primary,
+    borderRadius: 10,
+    paddingHorizontal: spacing.md,
+    minHeight: 44,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: spacing.xs,
+  },
+  emptyBtnText: {
+    color: colors.primaryForeground,
+    fontWeight: "700",
+    fontSize: 14,
+    fontFamily: fonts.bodyBold,
+  },
+  emptyHint: {
+    color: colors.mutedForeground,
+    fontSize: 11,
+    textAlign: "center",
+    fontFamily: fonts.body,
+    marginTop: 4,
+  },
+
+  // ── Modal / Sheet ─────────────────────────────────────────────────────────
+  overlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.65)",
+    justifyContent: "flex-end",
+  },
+  sheet: {
+    backgroundColor: colors.bg,
+    borderTopLeftRadius: radius.xl,
+    borderTopRightRadius: radius.xl,
+    padding: spacing.lg,
+    gap: spacing.sm,
+    borderTopWidth: 1,
+    borderColor: colors.border,
+  },
+  handle: {
+    width: 36,
+    height: 4,
+    backgroundColor: withAlpha(colors.mutedForeground, 0.40),
+    borderRadius: 2,
+    alignSelf: "center",
+    marginBottom: spacing.sm,
+  },
+  sheetHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  sheetTitle: {
+    color: colors.foreground,
+    fontSize: 27,
+    fontWeight: "600",
+    fontFamily: fonts.pixel,
+  },
+  closeBtn: {
+    width: 44,
+    height: 44,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  closeBtnText: {
+    color: colors.mutedForeground,
+    fontSize: 20,
+    fontWeight: "700",
+  },
+  sheetHint: {
+    color: colors.mutedForeground,
+    fontSize: 13,
+    lineHeight: 18,
+    fontFamily: fonts.body,
+  },
+  seedPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: colors.surface,
+    borderRadius: radius.md,
+    padding: spacing.sm,
+    borderWidth: 1,
+    borderColor: colors.border,
+    gap: spacing.sm,
+  },
+  seedPillLabel: {
+    color: colors.mutedForeground,
+    fontSize: 13,
+    fontWeight: "600",
+    fontFamily: fonts.bodySemiBold,
+  },
+  seedPillValue: {
+    color: colors.primary,
+    fontSize: 13,
+    fontWeight: "700",
+    flex: 1,
+    fontFamily: fonts.bodyBold,
+  },
+  fieldLabel: {
+    color: colors.mutedForeground,
+    fontSize: 13,
+    fontWeight: "600",
+    marginTop: spacing.xs,
+    fontFamily: fonts.bodySemiBold,
+  },
+  input: {
+    backgroundColor: colors.muted,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    color: colors.foreground,
+    fontSize: 15,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 10,
+    minHeight: 48,
+    fontFamily: fonts.bodySemiBold,
+  },
+  dhmRow: {
+    flexDirection: "row",
+    gap: spacing.sm,
+  },
+  dhmCell: {
+    flex: 1,
+    gap: 4,
+  },
+  dhmLabel: {
+    color: colors.mutedForeground,
+    fontSize: 12,
+    fontWeight: "600",
+    fontFamily: fonts.bodySemiBold,
+  },
+  previewCard: {
+    borderWidth: 1,
+    borderColor: withAlpha(colors.accentBlue, 0.20),
+    backgroundColor: withAlpha(colors.accentBlue, 0.05),
+    borderRadius: radius.lg,
+    padding: spacing.md,
+    gap: 4,
+  },
+  previewLabel: {
+    color: colors.accentBlue,
+    fontSize: 10,
+    fontWeight: "700",
+    letterSpacing: 1.2,
+    fontFamily: fonts.bodyBold,
+  },
+  previewTime: {
+    color: colors.foreground,
+    fontSize: 14,
+    fontWeight: "600",
+    fontFamily: fonts.bodySemiBold,
+  },
+  previewSeed: {
+    color: colors.mutedForeground,
+    fontSize: 12,
+    fontFamily: fonts.body,
+  },
+  modalError: {
+    color: colors.destruct,
+    fontSize: 13,
+    fontFamily: fonts.body,
+  },
+  sheetActions: {
+    flexDirection: "row",
+    gap: spacing.sm,
+    marginTop: spacing.xs,
+  },
+  sheetBtn: {
+    flex: 1,
+    minHeight: 44,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  sheetBtnPrimary: {
+    backgroundColor: colors.primary,
+  },
+  sheetBtnSecondary: {
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  sheetBtnPrimaryText: {
+    color: colors.primaryForeground,
+    fontWeight: "700",
+    fontSize: 15,
+    fontFamily: fonts.bodyBold,
+  },
+  sheetBtnSecondaryText: {
+    color: colors.foreground,
+    fontWeight: "700",
+    fontSize: 15,
+    fontFamily: fonts.bodyBold,
+  },
+}));
+
 export function DashboardScreen({
   onAddFarm,
   onOpenSeeds,
   onEditFarm,
   onNavigate,
 }: Props) {
+  const styles = useStyles();
+  const { colors } = useTheme();
+
+  const statusColors: Record<HarvestStatus, string> = {
+    ready: colors.primary,
+    growing: colors.growing,
+    harvested: colors.mutedForeground,
+  };
+
   const {
     farms,
     seeds,
@@ -251,7 +708,7 @@ export function DashboardScreen({
       return (
         <View style={styles.sectionHeader}>
           <Text
-            style={[styles.sectionLabel, { color: STATUS_COLORS[item.status] }]}
+            style={[styles.sectionLabel, { color: statusColors[item.status] }]}
           >
             {SECTION_LABELS[item.status]}
           </Text>
@@ -281,7 +738,7 @@ export function DashboardScreen({
         <View style={styles.headerRow}>
           <View style={styles.logoRow}>
             <Text style={styles.logoEmoji}>🌱</Text>
-            <Text style={[styles.logoText, { color: "#45D483" }]}>
+            <Text style={styles.logoText}>
               GrowTrack<Text style={styles.logoDot}>.</Text>
             </Text>
           </View>
@@ -603,451 +1060,3 @@ export function DashboardScreen({
     </SafeAreaView>
   );
 }
-
-const STATUS_COLORS: Record<HarvestStatus, string> = {
-  ready: colors.primary,
-  growing: colors.growing,
-  harvested: colors.mutedForeground,
-};
-
-const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-    backgroundColor: colors.bg,
-  },
-
-  // ── Header ──────────────────────────────────────────────────────────────
-  headerWrap: {
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.sm,
-    paddingBottom: spacing.sm,
-    gap: 2,
-  },
-  headerRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: 6,
-  },
-  logoRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  logoEmoji: {
-    fontSize: 21,
-    color: colors.primary,
-  },
-  logoText: {
-    color: colors.foreground,
-    fontSize: 23,
-    fontWeight: "600",
-    fontFamily: fonts.pixel,
-  },
-  logoDot: {
-    color: colors.accentBlue,
-  },
-  settingsBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: radius.md,
-    backgroundColor: colors.card,
-    borderWidth: 1,
-    borderColor: colors.border,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  settingsIcon: {
-    fontSize: 18,
-  },
-  subtitle: {
-    color: colors.mutedForeground,
-    fontSize: 12,
-    marginBottom: 4,
-    fontFamily: fonts.body,
-  },
-  greeting: {
-    color: colors.foreground,
-    fontSize: 28,
-    fontWeight: "600",
-    fontFamily: fonts.pixel,
-    lineHeight: 34,
-  },
-  farmSummary: {
-    color: colors.mutedForeground,
-    fontSize: 12,
-    marginTop: 6,
-    fontFamily: fonts.body,
-  },
-
-  // ── Stats ────────────────────────────────────────────────────────────────
-  statsRow: {
-    flexDirection: "row",
-    marginHorizontal: spacing.lg,
-    backgroundColor: colors.card,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
-    marginBottom: spacing.sm,
-    marginTop: spacing.sm,
-  },
-  statCell: {
-    flex: 1,
-    paddingVertical: 16,
-    paddingHorizontal: spacing.md,
-    minHeight: 44,
-  },
-  statLabelRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    marginBottom: 4,
-  },
-  statIcon: {
-    fontSize: 14,
-  },
-  statCellLabel: {
-    fontSize: 10,
-    fontWeight: "700",
-    fontFamily: fonts.bodyBold,
-    letterSpacing: 0.5,
-  },
-  statDivider: {
-    width: 1,
-    backgroundColor: colors.border,
-    alignSelf: "stretch",
-  },
-  statNum: {
-    fontSize: 31,
-    fontFamily: fonts.pixel,
-    lineHeight: 36,
-    letterSpacing: 1,
-  },
-
-  // ── Toolbar ──────────────────────────────────────────────────────────────
-  toolbar: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: spacing.lg,
-    marginBottom: spacing.xs,
-    gap: spacing.sm,
-  },
-  filterRow: {
-    flexDirection: "row",
-    gap: 4,
-    flex: 1,
-  },
-  filterBtn: {
-    paddingHorizontal: 12,
-    paddingVertical: 0,
-    minHeight: 44,
-    borderRadius: 10,
-    backgroundColor: colors.secondary,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  filterBtnActive: {
-    backgroundColor: colors.secondary,
-    borderWidth: 1,
-    borderColor: colors.primary,
-  },
-  filterBtnText: {
-    color: colors.foreground,
-    fontSize: 12,
-    fontWeight: "600",
-    fontFamily: fonts.bodySemiBold,
-  },
-  filterBtnTextActive: {
-    color: colors.primary,
-  },
-  toolbarRight: {
-    flexDirection: "row",
-    gap: 4,
-    alignItems: "center",
-  },
-  iconBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 10,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  iconBtnText: {
-    fontSize: 17,
-    color: colors.mutedForeground,
-  },
-  addBtn: {
-    width: "auto",
-    paddingHorizontal: 12,
-    backgroundColor: colors.primary,
-    borderRadius: 10,
-  },
-  addBtnText: {
-    color: colors.primaryForeground,
-    fontWeight: "600",
-    fontSize: 12,
-    fontFamily: fonts.bodySemiBold,
-  },
-
-  // ── Search ───────────────────────────────────────────────────────────────
-  searchWrap: {
-    paddingHorizontal: spacing.lg,
-    marginBottom: spacing.xs,
-  },
-  searchInput: {
-    backgroundColor: colors.card,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
-    color: colors.foreground,
-    paddingHorizontal: spacing.md,
-    paddingVertical: 10,
-    fontSize: 14,
-    fontFamily: fonts.body,
-  },
-
-  // ── Section headers ────────────────────────────────────────────────────
-  sectionHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    marginBottom: spacing.sm,
-    marginTop: 4,
-  },
-  sectionLabel: {
-    fontSize: 10,
-    fontWeight: "700",
-    fontFamily: fonts.bodyBold,
-    letterSpacing: 1.2,
-  },
-  sectionCount: {
-    fontSize: 10,
-    color: colors.mutedForeground,
-    fontWeight: "600",
-    fontFamily: fonts.bodySemiBold,
-    opacity: 0.6,
-  },
-
-  // ── Farm List ────────────────────────────────────────────────────────────
-  list: {
-    gap: spacing.sm,
-    paddingHorizontal: spacing.lg,
-    paddingBottom: 16,
-    paddingTop: 8,
-  },
-
-  // ── Empty ────────────────────────────────────────────────────────────────
-  empty: {
-    paddingVertical: 60,
-    alignItems: "center",
-    gap: spacing.sm,
-  },
-  emptyEmoji: {
-    fontSize: 48,
-    marginBottom: 8,
-  },
-  emptyTitle: {
-    color: colors.foreground,
-    fontSize: 20,
-    fontWeight: "700",
-    fontFamily: fonts.bodyBold,
-  },
-  emptyBody: {
-    color: colors.mutedForeground,
-    fontSize: 14,
-    textAlign: "center",
-    lineHeight: 20,
-    paddingHorizontal: spacing.xl,
-    fontFamily: fonts.body,
-  },
-  emptyBtn: {
-    marginTop: spacing.sm,
-    backgroundColor: colors.primary,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: 12,
-    borderRadius: 10,
-  },
-  emptyBtnText: {
-    color: colors.primaryForeground,
-    fontWeight: "700",
-    fontSize: 15,
-    fontFamily: fonts.bodyBold,
-  },
-  emptyHint: {
-    color: colors.mutedForeground,
-    fontSize: 12,
-    fontFamily: fonts.body,
-    marginTop: 4,
-  },
-
-  // ── Modal / Sheet ─────────────────────────────────────────────────────────
-  overlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.65)",
-    justifyContent: "flex-end",
-  },
-  sheet: {
-    backgroundColor: colors.bg,
-    borderTopLeftRadius: radius.xl,
-    borderTopRightRadius: radius.xl,
-    padding: spacing.lg,
-    gap: spacing.sm,
-    borderTopWidth: 1,
-    borderColor: colors.border,
-  },
-  handle: {
-    width: 36,
-    height: 4,
-    backgroundColor: colors.mutedForeground + "66",
-    borderRadius: 2,
-    alignSelf: "center",
-    marginBottom: spacing.sm,
-  },
-  sheetHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  sheetTitle: {
-    color: colors.foreground,
-    fontSize: 27,
-    fontWeight: "600",
-    fontFamily: fonts.pixel,
-  },
-  closeBtn: {
-    width: 44,
-    height: 44,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  closeBtnText: {
-    color: colors.mutedForeground,
-    fontSize: 20,
-    fontWeight: "700",
-  },
-  sheetHint: {
-    color: colors.mutedForeground,
-    fontSize: 13,
-    lineHeight: 18,
-    fontFamily: fonts.body,
-  },
-  seedPill: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: colors.surface,
-    borderRadius: radius.md,
-    padding: spacing.sm,
-    borderWidth: 1,
-    borderColor: colors.border,
-    gap: spacing.sm,
-  },
-  seedPillLabel: {
-    color: colors.mutedForeground,
-    fontSize: 13,
-    fontWeight: "600",
-    fontFamily: fonts.bodySemiBold,
-  },
-  seedPillValue: {
-    color: colors.primary,
-    fontSize: 13,
-    fontWeight: "700",
-    flex: 1,
-    fontFamily: fonts.bodyBold,
-  },
-  fieldLabel: {
-    color: colors.mutedForeground,
-    fontSize: 13,
-    fontWeight: "600",
-    marginTop: spacing.xs,
-    fontFamily: fonts.bodySemiBold,
-  },
-  input: {
-    backgroundColor: colors.muted,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
-    color: colors.foreground,
-    fontSize: 15,
-    paddingHorizontal: spacing.md,
-    paddingVertical: 10,
-    minHeight: 48,
-    fontFamily: fonts.bodySemiBold,
-  },
-  dhmRow: {
-    flexDirection: "row",
-    gap: spacing.sm,
-  },
-  dhmCell: {
-    flex: 1,
-    gap: 4,
-  },
-  dhmLabel: {
-    color: colors.mutedForeground,
-    fontSize: 12,
-    fontWeight: "600",
-    fontFamily: fonts.bodySemiBold,
-  },
-  previewCard: {
-    borderWidth: 1,
-    borderColor: colors.accentBlue + "33",
-    backgroundColor: colors.accentBlue + "0D",
-    borderRadius: radius.lg,
-    padding: spacing.md,
-    gap: 4,
-  },
-  previewLabel: {
-    color: colors.accentBlue,
-    fontSize: 10,
-    fontWeight: "700",
-    letterSpacing: 1.2,
-    fontFamily: fonts.bodyBold,
-  },
-  previewTime: {
-    color: colors.foreground,
-    fontSize: 14,
-    fontWeight: "600",
-    fontFamily: fonts.bodySemiBold,
-  },
-  previewSeed: {
-    color: colors.mutedForeground,
-    fontSize: 12,
-    fontFamily: fonts.body,
-  },
-  modalError: {
-    color: colors.destruct,
-    fontSize: 13,
-    fontFamily: fonts.body,
-  },
-  sheetActions: {
-    flexDirection: "row",
-    gap: spacing.sm,
-    marginTop: spacing.xs,
-  },
-  sheetBtn: {
-    flex: 1,
-    minHeight: 44,
-    borderRadius: 10,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  sheetBtnPrimary: {
-    backgroundColor: colors.primary,
-  },
-  sheetBtnSecondary: {
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  sheetBtnPrimaryText: {
-    color: colors.primaryForeground,
-    fontWeight: "700",
-    fontSize: 15,
-    fontFamily: fonts.bodyBold,
-  },
-  sheetBtnSecondaryText: {
-    color: colors.foreground,
-    fontWeight: "700",
-    fontSize: 15,
-    fontFamily: fonts.bodyBold,
-  },
-});

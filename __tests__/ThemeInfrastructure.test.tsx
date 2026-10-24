@@ -1,6 +1,10 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { renderHook, act } from '@testing-library/react-native';
 import React from 'react';
+import { Appearance } from 'react-native';
+
+const fs = require('fs');
+const path = require('path');
 import {
   darkPalette,
   lightPalette,
@@ -169,6 +173,118 @@ describe('Theme Infrastructure', () => {
       expect(result.current.preference).toBe('dark');
       expect(result.current.scheme).toBe('dark');
       expect(result.current.colors).toEqual(darkPalette);
+    });
+
+    test('Appearance.setColorScheme is synchronized with preference', async () => {
+      const setColorSchemeSpy = jest.spyOn(Appearance, 'setColorScheme');
+
+      const wrapper = ({ children }: { children: React.ReactNode }) => (
+        <ThemeProvider>{children}</ThemeProvider>
+      );
+
+      const { result } = renderHook(() => useTheme(), { wrapper });
+
+      await act(async () => {
+        await new Promise((r) => setTimeout(r, 50));
+      });
+
+      await act(async () => {
+        await result.current.setPreference('light');
+      });
+      expect(setColorSchemeSpy).toHaveBeenCalledWith('light');
+
+      await act(async () => {
+        await result.current.setPreference('system');
+      });
+      expect(setColorSchemeSpy).toHaveBeenCalledWith(null);
+
+      setColorSchemeSpy.mockRestore();
+    });
+  });
+
+  describe('Static colors & hex guard check', () => {
+    function getAllSrcFiles(dir: string, fileList: string[] = []): string[] {
+      const files = fs.readdirSync(dir);
+      for (const file of files) {
+        const filePath = path.join(dir, file);
+        const stat = fs.statSync(filePath);
+        if (stat.isDirectory()) {
+          getAllSrcFiles(filePath, fileList);
+        } else if (file.endsWith('.ts') || file.endsWith('.tsx')) {
+          fileList.push(filePath);
+        }
+      }
+      return fileList;
+    }
+
+    test('No files in src/ import static colors (except src/theme.ts legacy re-export)', () => {
+      const srcDir = path.resolve(process.cwd(), 'src');
+      const allFiles = getAllSrcFiles(srcDir);
+      const violations: string[] = [];
+
+      for (const file of allFiles) {
+        const rel = path.relative(srcDir, file).replace(/\\/g, '/');
+        if (rel === 'theme.ts') continue;
+
+        const content = fs.readFileSync(file, 'utf8');
+        // Check for import { colors } or similar static imports
+        if (/import\s+{[^}]*\bcolors\b[^}]*}\s+from/.test(content)) {
+          violations.push(rel);
+        }
+      }
+
+      expect(violations).toEqual([]);
+    });
+
+    test('All hex and rgba literals in src/ match registered theme-independent constants', () => {
+      const srcDir = path.resolve(process.cwd(), 'src');
+      const allFiles = getAllSrcFiles(srcDir);
+      const violations: { file: string; line: number; match: string }[] = [];
+
+      const allowedFiles = new Set(['theme/palettes.ts', 'theme.ts', 'theme/withAlpha.ts']);
+
+      // Whitelisted theme-independent literals (brand colors, overlay backdrops, constant white/shadow)
+      const allowedPatterns = [
+        /#4285F4/i, // Google Blue
+        /#34A853/i, // Google Green
+        /#FBBC05/i, // Google Yellow
+        /#EA4335/i, // Google Red
+        /#F2C94C/i, // Active Star color
+        /#3DDC84/i, // Android Notification light color
+        /#ffffff/i, // White toggle knob / thumb
+        /#000/i,    // Shadow color
+        /#21110e/i, // Destructive text color
+        /#0d1715/i, // Dark theme swatch preview
+        /#edf2e8/i, // Light theme swatch preview
+        /#555f5c/i, // System theme swatch preview
+        /#e96a6a/i, // Password strength level 1
+        /#e6c16a/i, // Password strength level 2
+        /#4ca8ff/i, // Password strength level 3 / splash comment
+        /#45d483/i, // Password strength level 4
+        /rgba\(\s*0\s*,\s*0\s*,\s*0\s*,\s*0\.65\s*\)/, // Backdrop overlay
+        /rgba\(\s*129\s*,\s*146\s*,\s*135\s*,\s*0\.[23]\s*\)/, // Theme swatch container borders
+      ];
+
+      for (const file of allFiles) {
+        const rel = path.relative(srcDir, file).replace(/\\/g, '/');
+        if (allowedFiles.has(rel)) continue;
+
+        const lines = fs.readFileSync(file, 'utf8').split('\n');
+        lines.forEach((lineText: string, idx: number) => {
+          // match hex or rgba
+          const matches = lineText.match(/#[0-9a-fA-F]{3,8}|rgba?\([^)]+\)/g);
+          if (matches) {
+            for (const m of matches) {
+              const isAllowed = allowedPatterns.some((pattern) => pattern.test(m));
+              if (!isAllowed) {
+                violations.push({ file: rel, line: idx + 1, match: m });
+              }
+            }
+          }
+        });
+      }
+
+      expect(violations).toEqual([]);
     });
   });
 });

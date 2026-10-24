@@ -35,9 +35,12 @@ import {
   XIcon,
 } from '../components/settings/SettingsIcons';
 import { TabBar } from '../components/TabBar';
-import { loadPrefs, savePrefs, type Prefs } from '../settings/prefsStorage';
+import { type Prefs } from '../settings/prefsStorage';
 import { useStore } from '../store';
-import { colors, fonts } from '../theme';
+import { fonts } from '../theme';
+import { makeStyles } from '../theme/makeStyles';
+import { useTheme } from '../theme/ThemeContext';
+import { withAlpha } from '../theme/withAlpha';
 import type { Route } from '../types';
 
 type OverlayId =
@@ -50,6 +53,116 @@ const cssEaseIn = Easing.in(Easing.ease);
 const sheetEasing = Easing.bezier(0.2, 0.8, 0.2, 1);
 
 type Props = { onNavigate: (route: Route) => void };
+
+const useStyles = makeStyles(({ colors }) => ({
+  safe: { flex: 1, backgroundColor: colors.bg },
+  flex: { flex: 1 },
+  scrollContent: { paddingHorizontal: 20, paddingTop: 12 },
+
+  h1: { fontFamily: fonts.pixel, fontSize: 30, color: colors.foreground, includeFontPadding: false },
+  subtitle: { marginTop: 4, fontSize: 14, color: colors.mutedForeground, fontFamily: fonts.body, includeFontPadding: false },
+
+  section: { marginTop: 28 },
+  sectionLabel: {
+    marginBottom: 8, fontSize: 10, fontFamily: fonts.bodyBold,
+    letterSpacing: 1.2, color: colors.mutedForeground, includeFontPadding: false,
+  },
+
+  row: {
+    flexDirection: 'row', alignItems: 'center', minHeight: 56, gap: 12,
+    borderBottomWidth: 1, borderBottomColor: withAlpha(colors.border, 0.60),
+  },
+  rowPressed: { opacity: 0.7 },
+  rowIcon: {},
+  rowTitle: { flex: 1, fontSize: 14, fontFamily: fonts.body, color: colors.foreground, includeFontPadding: false },
+  rowDanger: { color: colors.destruct },
+  rowDetail: { fontSize: 12, fontFamily: fonts.body, color: colors.mutedForeground, includeFontPadding: false },
+
+  notifRow: {
+    flexDirection: 'row', alignItems: 'center', minHeight: 64, gap: 12,
+    borderBottomWidth: 1, borderBottomColor: colors.border,
+  },
+  notifLabel: { flex: 1, fontSize: 14, fontFamily: fonts.body, color: colors.foreground, includeFontPadding: false },
+
+  toggleWrapper: { minHeight: 44, minWidth: 48, alignItems: 'center', justifyContent: 'center' },
+  toggleTrack: { width: 44, height: 24, borderRadius: 12, paddingHorizontal: 4, alignItems: 'flex-start', justifyContent: 'center' },
+  toggleOn: { backgroundColor: colors.primary },
+  toggleOff: { backgroundColor: colors.secondary },
+  toggleKnob: { width: 16, height: 16, borderRadius: 8, backgroundColor: '#ffffff' },
+
+  tagline: {
+    marginTop: 32, textAlign: 'center', fontFamily: fonts.pixel,
+    fontSize: 18, color: colors.primary, includeFontPadding: false,
+  },
+
+  toast: {
+    position: 'absolute', left: 20, right: 20, alignSelf: 'center', maxWidth: 420,
+    backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border,
+    borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12, zIndex: 50,
+  },
+  toastText: { fontSize: 14, fontFamily: fonts.bodySemiBold, color: colors.foreground, includeFontPadding: false },
+
+  backdrop: { ...StyleSheet.absoluteFill as object, backgroundColor: 'rgba(0,0,0,0.65)', zIndex: 40 },
+
+  sheetContainer: {
+    ...StyleSheet.absoluteFill as object, justifyContent: 'flex-end', alignItems: 'center', zIndex: 41,
+  },
+  sheet: {
+    width: '100%', maxWidth: 460, maxHeight: '92%',
+    borderTopLeftRadius: 24, borderTopRightRadius: 24,
+    borderWidth: 1, borderColor: colors.border, backgroundColor: colors.bg,
+    paddingHorizontal: 20, paddingTop: 20,
+    shadowColor: '#000', shadowOffset: { width: 0, height: -4 }, shadowOpacity: 0.3, shadowRadius: 12, elevation: 24,
+  },
+  dragHandle: { alignSelf: 'center', marginBottom: 20, height: 4, width: 36, borderRadius: 2, backgroundColor: withAlpha(colors.mutedForeground, 0.40) },
+  sheetHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 },
+  sheetTitle: { fontFamily: fonts.pixel, fontSize: 27, color: colors.foreground, flex: 1, includeFontPadding: false },
+  closeBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+
+  dialogContainer: {
+    ...StyleSheet.absoluteFill as object, justifyContent: 'flex-end', alignItems: 'center',
+    zIndex: 41, paddingBottom: '30%' as unknown as number, paddingHorizontal: 20,
+  },
+  dialog: {
+    width: '100%', maxWidth: 360, borderRadius: 16, borderWidth: 1, borderColor: colors.border,
+    backgroundColor: colors.bg, padding: 20,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 12, elevation: 24,
+  },
+  dialogHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 },
+  dialogBody: { fontSize: 14, lineHeight: 24, color: colors.mutedForeground, fontFamily: fonts.body, includeFontPadding: false },
+  dialogActions: { flexDirection: 'row', gap: 12, marginTop: 24 },
+
+  btn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', minHeight: 44, borderRadius: 10, paddingHorizontal: 16 },
+  btnFlex: { flex: 1 },
+  btnPressedStyle: { opacity: 0.85, transform: [{ scale: 0.97 }] },
+  btnPrimary: { backgroundColor: colors.primary },
+  btnPrimaryText: { fontSize: 14, fontFamily: fonts.bodySemiBold, color: colors.primaryForeground, includeFontPadding: false },
+  btnSecondary: { backgroundColor: colors.secondary },
+  btnSecondaryText: { fontSize: 14, fontFamily: fonts.bodySemiBold, color: colors.foreground, includeFontPadding: false },
+  btnDestructive: { backgroundColor: colors.destruct },
+  btnDestructiveText: { fontSize: 14, fontFamily: fonts.bodySemiBold, color: '#21110e', includeFontPadding: false },
+  btnNeutral: { backgroundColor: colors.muted },
+  btnNeutralText: { fontSize: 14, fontFamily: fonts.bodySemiBold, color: colors.foreground, includeFontPadding: false },
+
+  bodyText: { fontSize: 14, lineHeight: 24, color: colors.mutedForeground, fontFamily: fonts.body, includeFontPadding: false },
+
+  themeGrid: { flexDirection: 'row', gap: 12 },
+  themeCard: { flex: 1, borderRadius: 12, borderWidth: 2, padding: 12 },
+  themeCardActive: { borderColor: colors.primary },
+  themeCardInactive: { borderColor: colors.border },
+  themePreview: { marginBottom: 12, height: 96, borderRadius: 8, padding: 8 },
+  themeBar: { height: 8, width: 28, borderRadius: 4, backgroundColor: colors.primary, marginBottom: 8 },
+  themeRow: { height: 24, borderRadius: 4, borderWidth: 1, borderColor: 'rgba(129,146,135,0.3)', backgroundColor: 'rgba(129,146,135,0.2)' },
+  themeFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  themeLabel: { fontSize: 12, fontFamily: fonts.body, color: colors.foreground, textTransform: 'capitalize', includeFontPadding: false },
+
+  accountCard: { borderRadius: 12, backgroundColor: colors.card, padding: 16 },
+  accountName: { fontFamily: fonts.bodySemiBold, fontSize: 14, color: colors.foreground, includeFontPadding: false },
+  accountEmail: { fontSize: 12, color: colors.mutedForeground, fontFamily: fonts.body, marginTop: 4, includeFontPadding: false },
+  accountSync: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 12 },
+  accountSyncText: { fontSize: 12, color: colors.mutedForeground, fontFamily: fonts.body, includeFontPadding: false },
+  accountNotice: { fontSize: 12, lineHeight: 20, color: colors.mutedForeground, fontFamily: fonts.body, marginTop: 16, includeFontPadding: false },
+}));
 
 // ─── Row ──────────────────────────────────────────────────────────────────────
 function Row({
@@ -65,6 +178,9 @@ function Row({
   onPress: () => void;
   danger?: boolean;
 }) {
+  const styles = useStyles();
+  const { colors } = useTheme();
+
   return (
     <Pressable
       onPress={onPress}
@@ -89,6 +205,7 @@ function Toggle({
   onChange: () => void;
   label: string;
 }) {
+  const styles = useStyles();
   const tx = useRef(new Animated.Value(value ? 20 : 0)).current;
   useEffect(() => {
     Animated.timing(tx, {
@@ -115,6 +232,7 @@ function Toggle({
 
 // ─── Section ──────────────────────────────────────────────────────────────────
 function Section({ label, children }: { label: string; children: React.ReactNode }) {
+  const styles = useStyles();
   return (
     <View style={styles.section}>
       <Text style={styles.sectionLabel}>{label}</Text>
@@ -125,19 +243,31 @@ function Section({ label, children }: { label: string; children: React.ReactNode
 
 // ─── SettingsScreen ───────────────────────────────────────────────────────────
 export function SettingsScreen({ onNavigate }: Props) {
+  const styles = useStyles();
   const { authState, signOut } = useAuth();
   const { farms, restoreStarterSeeds } = useStore();
   const insets = useSafeAreaInsets();
+  const themeCtx = useTheme();
+  const { colors, resetPrefs } = themeCtx;
+  const [prefs, setPrefs] = useState<Prefs>(themeCtx.prefs);
+
+  useEffect(() => {
+    setPrefs(themeCtx.prefs);
+  }, [themeCtx.prefs]);
+
+  const updatePrefs = useCallback((patch: Partial<Prefs>) => {
+    setPrefs((current) => {
+      const next = { ...current, ...patch };
+      if (patch.theme) {
+        themeCtx.setPreference(patch.theme).catch(() => {});
+      }
+      themeCtx.updatePrefs(next).catch(() => {});
+      return next;
+    });
+  }, [themeCtx]);
 
   const account = authState.status === 'authenticated' ? authState.account : null;
   const guest = !account || account.mode === 'guest';
-
-  const [prefs, setPrefs] = useState<Prefs>({
-    theme: 'dark', notifications: true, time: '24', behavior: 'seed',
-  });
-
-  useEffect(() => { loadPrefs().then(setPrefs); }, []);
-  useEffect(() => { savePrefs(prefs); }, [prefs]);
 
   const [overlay, setOverlay] = useState<OverlayId>('');
   const [overlayClosing, setOverlayClosing] = useState(false);
@@ -198,10 +328,6 @@ export function SettingsScreen({ onNavigate }: Props) {
     toastTimer.current = setTimeout(() => setToast(''), 3500);
   }, []);
 
-  const updatePrefs = useCallback((patch: Partial<Prefs>) => {
-    setPrefs((p) => ({ ...p, ...patch }));
-  }, []);
-
   const handleRestoreSeeds = useCallback(async () => {
     await restoreStarterSeeds();
     closeOverlay();
@@ -217,11 +343,10 @@ export function SettingsScreen({ onNavigate }: Props) {
       );
       if (farmKeys.length > 0) await AsyncStorage.multiRemove(farmKeys);
     } catch { /* ignore */ }
-    const defaultPrefs: Prefs = { theme: 'dark', notifications: true, time: '24', behavior: 'seed' };
-    setPrefs(defaultPrefs);
+    await resetPrefs();
     closeOverlay();
     showToast('Done. Your data has been updated.');
-  }, [closeOverlay, showToast]);
+  }, [closeOverlay, showToast, resetPrefs]);
 
   const handleSignOut = useCallback(async () => {
     await signOut();
@@ -423,6 +548,8 @@ function ConfirmDialog({
   onRestore: () => void;
   onResetData: () => void;
 }) {
+  const styles = useStyles();
+  const { colors } = useTheme();
   const isRestore = overlay === 'restore';
   const title = isRestore ? 'Restore default seeds?' : 'Reset app data?';
   const body = isRestore
@@ -465,6 +592,8 @@ function ConfirmDialog({
 
 // ─── ThemeOverlay ─────────────────────────────────────────────────────────────
 function ThemeOverlay({ prefs, onUpdate }: { prefs: Prefs; onUpdate: (p: Partial<Prefs>) => void }) {
+  const styles = useStyles();
+  const { colors, setPreference } = useTheme();
   const themes: Array<{ id: 'dark' | 'light' | 'system'; label: string; bg: string }> = [
     { id: 'dark', label: 'Dark', bg: '#0d1715' },
     { id: 'light', label: 'Light', bg: '#edf2e8' },
@@ -477,7 +606,10 @@ function ThemeOverlay({ prefs, onUpdate }: { prefs: Prefs; onUpdate: (p: Partial
         return (
           <Pressable
             key={id}
-            onPress={() => onUpdate({ theme: id })}
+            onPress={() => {
+              setPreference(id);
+              onUpdate({ theme: id });
+            }}
             style={[styles.themeCard, active ? styles.themeCardActive : styles.themeCardInactive]}
           >
             <View style={[styles.themePreview, { backgroundColor: bg }]}>
@@ -504,6 +636,8 @@ function BehaviorOverlay({
   prefs: Prefs;
   onUpdate: (p: Partial<Prefs>) => void;
 }) {
+  const styles = useStyles();
+  const { colors } = useTheme();
   const opts: Array<{ id: 'seed' | 'manual'; title: string; detail: string }> = [
     { id: 'seed', title: 'Use seed time', detail: "Farm timers follow the seed's grow time." },
     { id: 'manual', title: 'Manual only', detail: 'Set a custom time for each farm.' },
@@ -546,6 +680,8 @@ function AccountOverlay({
   onNavigate: (r: Route) => void;
   onClose: () => void;
 }) {
+  const styles = useStyles();
+  const { colors } = useTheme();
   if (guest) {
     return (
       <View>
@@ -601,6 +737,7 @@ function AccountOverlay({
 
 // ─── AboutOverlay ─────────────────────────────────────────────────────────────
 function AboutOverlay() {
+  const styles = useStyles();
   return (
     <View style={{ gap: 16 }}>
       <Text style={styles.bodyText}>
@@ -615,114 +752,3 @@ function AboutOverlay() {
     </View>
   );
 }
-
-// ─── Styles ───────────────────────────────────────────────────────────────────
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.bg },
-  flex: { flex: 1 },
-  scrollContent: { paddingHorizontal: 20, paddingTop: 12 },
-
-  h1: { fontFamily: fonts.pixel, fontSize: 30, color: colors.foreground, includeFontPadding: false },
-  subtitle: { marginTop: 4, fontSize: 14, color: colors.mutedForeground, fontFamily: fonts.body, includeFontPadding: false },
-
-  section: { marginTop: 28 },
-  sectionLabel: {
-    marginBottom: 8, fontSize: 10, fontFamily: fonts.bodyBold,
-    letterSpacing: 1.2, color: colors.mutedForeground, includeFontPadding: false,
-  },
-
-  row: {
-    flexDirection: 'row', alignItems: 'center', minHeight: 56, gap: 12,
-    borderBottomWidth: 1, borderBottomColor: 'rgba(42,60,53,0.6)',
-  },
-  rowPressed: { opacity: 0.7 },
-  rowIcon: {},
-  rowTitle: { flex: 1, fontSize: 14, fontFamily: fonts.body, color: colors.foreground, includeFontPadding: false },
-  rowDanger: { color: colors.destruct },
-  rowDetail: { fontSize: 12, fontFamily: fonts.body, color: colors.mutedForeground, includeFontPadding: false },
-
-  notifRow: {
-    flexDirection: 'row', alignItems: 'center', minHeight: 64, gap: 12,
-    borderBottomWidth: 1, borderBottomColor: colors.border,
-  },
-  notifLabel: { flex: 1, fontSize: 14, fontFamily: fonts.body, color: colors.foreground, includeFontPadding: false },
-
-  toggleWrapper: { minHeight: 44, minWidth: 48, alignItems: 'center', justifyContent: 'center' },
-  toggleTrack: { width: 44, height: 24, borderRadius: 12, paddingHorizontal: 4, alignItems: 'flex-start', justifyContent: 'center' },
-  toggleOn: { backgroundColor: colors.primary },
-  toggleOff: { backgroundColor: colors.secondary },
-  toggleKnob: { width: 16, height: 16, borderRadius: 8, backgroundColor: '#ffffff' },
-
-  tagline: {
-    marginTop: 32, textAlign: 'center', fontFamily: fonts.pixel,
-    fontSize: 18, color: colors.primary, includeFontPadding: false,
-  },
-
-  toast: {
-    position: 'absolute', left: 20, right: 20, alignSelf: 'center', maxWidth: 420,
-    backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border,
-    borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12, zIndex: 50,
-  },
-  toastText: { fontSize: 14, fontFamily: fonts.bodySemiBold, color: colors.foreground, includeFontPadding: false },
-
-  backdrop: { ...StyleSheet.absoluteFill as object, backgroundColor: 'rgba(0,0,0,0.65)', zIndex: 40 },
-
-  sheetContainer: {
-    ...StyleSheet.absoluteFill as object, justifyContent: 'flex-end', alignItems: 'center', zIndex: 41,
-  },
-  sheet: {
-    width: '100%', maxWidth: 460, maxHeight: '92%',
-    borderTopLeftRadius: 24, borderTopRightRadius: 24,
-    borderWidth: 1, borderColor: colors.border, backgroundColor: colors.bg,
-    paddingHorizontal: 20, paddingTop: 20,
-    shadowColor: '#000', shadowOffset: { width: 0, height: -4 }, shadowOpacity: 0.3, shadowRadius: 12, elevation: 24,
-  },
-  dragHandle: { alignSelf: 'center', marginBottom: 20, height: 4, width: 36, borderRadius: 2, backgroundColor: 'rgba(145,166,157,0.4)' },
-  sheetHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 },
-  sheetTitle: { fontFamily: fonts.pixel, fontSize: 27, color: colors.foreground, flex: 1, includeFontPadding: false },
-  closeBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
-
-  dialogContainer: {
-    ...StyleSheet.absoluteFill as object, justifyContent: 'flex-end', alignItems: 'center',
-    zIndex: 41, paddingBottom: '30%' as unknown as number, paddingHorizontal: 20,
-  },
-  dialog: {
-    width: '100%', maxWidth: 360, borderRadius: 16, borderWidth: 1, borderColor: colors.border,
-    backgroundColor: colors.bg, padding: 20,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 12, elevation: 24,
-  },
-  dialogHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 },
-  dialogBody: { fontSize: 14, lineHeight: 24, color: colors.mutedForeground, fontFamily: fonts.body, includeFontPadding: false },
-  dialogActions: { flexDirection: 'row', gap: 12, marginTop: 24 },
-
-  btn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', minHeight: 44, borderRadius: 10, paddingHorizontal: 16 },
-  btnFlex: { flex: 1 },
-  btnPressedStyle: { opacity: 0.85, transform: [{ scale: 0.97 }] },
-  btnPrimary: { backgroundColor: colors.primary },
-  btnPrimaryText: { fontSize: 14, fontFamily: fonts.bodySemiBold, color: colors.primaryForeground, includeFontPadding: false },
-  btnSecondary: { backgroundColor: colors.secondary },
-  btnSecondaryText: { fontSize: 14, fontFamily: fonts.bodySemiBold, color: colors.foreground, includeFontPadding: false },
-  btnDestructive: { backgroundColor: colors.destruct },
-  btnDestructiveText: { fontSize: 14, fontFamily: fonts.bodySemiBold, color: '#21110e', includeFontPadding: false },
-  btnNeutral: { backgroundColor: colors.muted },
-  btnNeutralText: { fontSize: 14, fontFamily: fonts.bodySemiBold, color: colors.foreground, includeFontPadding: false },
-
-  bodyText: { fontSize: 14, lineHeight: 24, color: colors.mutedForeground, fontFamily: fonts.body, includeFontPadding: false },
-
-  themeGrid: { flexDirection: 'row', gap: 12 },
-  themeCard: { flex: 1, borderRadius: 12, borderWidth: 2, padding: 12 },
-  themeCardActive: { borderColor: colors.primary },
-  themeCardInactive: { borderColor: colors.border },
-  themePreview: { marginBottom: 12, height: 96, borderRadius: 8, padding: 8 },
-  themeBar: { height: 8, width: 28, borderRadius: 4, backgroundColor: colors.primary, marginBottom: 8 },
-  themeRow: { height: 24, borderRadius: 4, borderWidth: 1, borderColor: 'rgba(129,146,135,0.3)', backgroundColor: 'rgba(129,146,135,0.2)' },
-  themeFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  themeLabel: { fontSize: 12, fontFamily: fonts.body, color: colors.foreground, textTransform: 'capitalize', includeFontPadding: false },
-
-  accountCard: { borderRadius: 12, backgroundColor: colors.card, padding: 16 },
-  accountName: { fontFamily: fonts.bodySemiBold, fontSize: 14, color: colors.foreground, includeFontPadding: false },
-  accountEmail: { fontSize: 12, color: colors.mutedForeground, fontFamily: fonts.body, marginTop: 4, includeFontPadding: false },
-  accountSync: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 12 },
-  accountSyncText: { fontSize: 12, color: colors.mutedForeground, fontFamily: fonts.body, includeFontPadding: false },
-  accountNotice: { fontSize: 12, lineHeight: 20, color: colors.mutedForeground, fontFamily: fonts.body, marginTop: 16, includeFontPadding: false },
-});

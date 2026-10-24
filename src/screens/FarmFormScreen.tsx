@@ -13,7 +13,10 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useStore } from '../store';
-import { colors, fonts, radius, spacing } from '../theme';
+import { fonts, radius, spacing } from '../theme';
+import { useTheme } from '../theme/ThemeContext';
+import { makeStyles } from '../theme/makeStyles';
+import { withAlpha } from '../theme/withAlpha';
 import type { Farm } from '../types';
 import { ensureNotificationPermission } from '../notifications';
 import { confirmAction } from '../utils/confirm';
@@ -30,7 +33,260 @@ type Props = {
   onBack: () => void;
 };
 
+const useStyles = makeStyles(({ colors }) => ({
+  safe: {
+    flex: 1,
+    backgroundColor: colors.bg,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  closeBtn: {
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  closeBtnText: {
+    color: colors.mutedForeground,
+    fontSize: 20,
+    fontWeight: '700',
+  },
+  title: {
+    flex: 1,
+    textAlign: 'center',
+    color: colors.foreground,
+    fontSize: 27,
+    fontWeight: '600',
+    fontFamily: fonts.pixel,
+  },
+  headerSpacer: {
+    width: 44,
+  },
+  scroll: {
+    padding: spacing.md,
+    paddingBottom: 40,
+    gap: spacing.md,
+  },
+  fieldWrap: {
+    gap: 6,
+  },
+  fieldLabel: {
+    color: colors.foreground,
+    fontSize: 14,
+    fontWeight: '500',
+    fontFamily: fonts.bodySemiBold,
+  },
+  input: {
+    backgroundColor: colors.muted,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    color: colors.foreground,
+    minHeight: 48,
+    paddingHorizontal: spacing.md,
+    fontSize: 14,
+    fontWeight: '600',
+    letterSpacing: 0.5,
+    fontFamily: fonts.bodySemiBold,
+  },
+  sectionLabel: {
+    color: colors.foreground,
+    fontWeight: '500',
+    fontSize: 14,
+    fontFamily: fonts.bodySemiBold,
+  },
+  seedSearchWrap: {
+    marginBottom: 8,
+    position: 'relative',
+  },
+  seedSearchInput: {
+    backgroundColor: colors.muted,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    color: colors.foreground,
+    height: 44,
+    paddingHorizontal: spacing.md,
+    paddingLeft: 40,
+    fontSize: 14,
+    fontFamily: fonts.body,
+  },
+  seedGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  seedChip: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.card,
+    borderRadius: radius.lg,
+    paddingHorizontal: 8,
+    paddingVertical: 8,
+    minHeight: 56,
+    width: '47%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  seedChipOn: {
+    backgroundColor: withAlpha(colors.primary, 0.10),
+    borderColor: colors.primary,
+  },
+  seedChipIconWrap: {
+    width: 24,
+    height: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  seedChipImg: {
+    width: 24,
+    height: 24,
+  },
+  seedChipEmoji: {
+    fontSize: 20,
+  },
+  seedChipText: {
+    color: colors.foreground,
+    fontSize: 12,
+    fontWeight: '600',
+    flex: 1,
+    fontFamily: fonts.bodySemiBold,
+  },
+  seedChipTextOn: {
+    color: colors.foreground,
+  },
+  checkmark: {
+    color: colors.primary,
+    fontWeight: '700',
+    fontSize: 13,
+  },
+  hint: {
+    color: colors.mutedForeground,
+    fontSize: 12,
+    lineHeight: 17,
+    fontFamily: fonts.body,
+  },
+  dhmRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+  dhmCell: {
+    flex: 1,
+    alignItems: 'center',
+    gap: 8,
+  },
+  dhmInput: {
+    backgroundColor: colors.muted,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    color: colors.foreground,
+    height: 56,
+    width: '100%',
+    fontSize: 20,
+    fontWeight: '700',
+    textAlign: 'center',
+    fontFamily: fonts.bodyBold,
+  },
+  dhmLabel: {
+    color: colors.mutedForeground,
+    fontSize: 12,
+    fontWeight: '600',
+    fontFamily: fonts.bodySemiBold,
+  },
+  flex: {
+    flex: 1,
+  },
+  notifyRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    paddingVertical: spacing.sm,
+  },
+  notifyTitle: {
+    color: colors.foreground,
+    fontWeight: '500',
+    fontSize: 14,
+    fontFamily: fonts.bodySemiBold,
+  },
+  previewCard: {
+    borderWidth: 1,
+    borderColor: withAlpha(colors.accentBlue, 0.20),
+    backgroundColor: withAlpha(colors.accentBlue, 0.05),
+    borderRadius: radius.lg,
+    padding: spacing.md,
+    gap: 4,
+  },
+  previewLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  previewLabel: {
+    color: colors.accentBlue,
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 1.2,
+    fontFamily: fonts.bodyBold,
+  },
+  previewTime: {
+    color: colors.foreground,
+    fontSize: 14,
+    fontWeight: '600',
+    marginTop: 8,
+    fontFamily: fonts.bodySemiBold,
+  },
+  previewSeed: {
+    color: colors.mutedForeground,
+    fontSize: 12,
+    marginTop: 4,
+    fontFamily: fonts.body,
+  },
+  error: {
+    color: colors.destruct,
+    fontSize: 13,
+    fontFamily: fonts.body,
+  },
+  saveBtn: {
+    backgroundColor: colors.primary,
+    borderRadius: 10,
+    minHeight: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  saveBtnText: {
+    color: colors.primaryForeground,
+    fontWeight: '700',
+    fontSize: 14,
+    fontFamily: fonts.bodyBold,
+  },
+  deleteBtn: {
+    backgroundColor: withAlpha(colors.destruct, 0.10),
+    borderWidth: 1,
+    borderColor: colors.destruct,
+    borderRadius: 10,
+    minHeight: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  deleteBtnText: {
+    color: colors.destruct,
+    fontWeight: '700',
+    fontSize: 14,
+    fontFamily: fonts.bodyBold,
+  },
+}));
+
 export function FarmFormScreen({ farmId, onBack }: Props) {
+  const styles = useStyles();
+  const { colors } = useTheme();
   const { farms, seeds, addFarm, updateFarm, deleteFarm } = useStore();
   const existing = farmId ? farms.find((f) => f.id === farmId) : undefined;
 
@@ -342,6 +598,7 @@ function SeedChip({
   selected: boolean;
   onPress: () => void;
 }) {
+  const styles = useStyles();
   return (
     <Pressable
       accessibilityRole="button"
@@ -362,254 +619,3 @@ function SeedChip({
     </Pressable>
   );
 }
-
-const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-    backgroundColor: colors.bg,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  closeBtn: {
-    width: 44,
-    height: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  closeBtnText: {
-    color: colors.mutedForeground,
-    fontSize: 20,
-    fontWeight: '700',
-  },
-  title: {
-    flex: 1,
-    textAlign: 'center',
-    color: colors.foreground,
-    fontSize: 27,
-    fontWeight: '600',
-    fontFamily: fonts.pixel,
-  },
-  headerSpacer: {
-    width: 44,
-  },
-  scroll: {
-    padding: spacing.md,
-    paddingBottom: 40,
-    gap: spacing.md,
-  },
-  fieldWrap: {
-    gap: 6,
-  },
-  fieldLabel: {
-    color: colors.foreground,
-    fontSize: 14,
-    fontWeight: '500',
-    fontFamily: fonts.bodySemiBold,
-  },
-  input: {
-    backgroundColor: colors.muted,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
-    color: colors.foreground,
-    minHeight: 48,
-    paddingHorizontal: spacing.md,
-    fontSize: 14,
-    fontWeight: '600',
-    letterSpacing: 0.5,
-    fontFamily: fonts.bodySemiBold,
-  },
-  sectionLabel: {
-    color: colors.foreground,
-    fontWeight: '500',
-    fontSize: 14,
-    fontFamily: fonts.bodySemiBold,
-  },
-  seedSearchWrap: {
-    marginBottom: 8,
-    position: 'relative',
-  },
-  seedSearchInput: {
-    backgroundColor: colors.muted,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
-    color: colors.foreground,
-    height: 44,
-    paddingHorizontal: spacing.md,
-    paddingLeft: 40,
-    fontSize: 14,
-    fontFamily: fonts.body,
-  },
-  seedGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  seedChip: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.card,
-    borderRadius: radius.lg,
-    paddingHorizontal: 8,
-    paddingVertical: 8,
-    minHeight: 56,
-    width: '47%',
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  seedChipOn: {
-    backgroundColor: colors.primary + '1A',
-    borderColor: colors.primary,
-  },
-  seedChipIconWrap: {
-    width: 24,
-    height: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  seedChipImg: {
-    width: 24,
-    height: 24,
-  },
-  seedChipEmoji: {
-    fontSize: 20,
-  },
-  seedChipText: {
-    color: colors.foreground,
-    fontSize: 12,
-    fontWeight: '600',
-    flex: 1,
-    fontFamily: fonts.bodySemiBold,
-  },
-  seedChipTextOn: {
-    color: colors.foreground,
-  },
-  checkmark: {
-    color: colors.primary,
-    fontWeight: '700',
-    fontSize: 13,
-  },
-  hint: {
-    color: colors.mutedForeground,
-    fontSize: 12,
-    lineHeight: 17,
-    fontFamily: fonts.body,
-  },
-  dhmRow: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-  },
-  dhmCell: {
-    flex: 1,
-    alignItems: 'center',
-    gap: 8,
-  },
-  dhmInput: {
-    backgroundColor: colors.muted,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
-    color: colors.foreground,
-    height: 56,
-    width: '100%',
-    fontSize: 20,
-    fontWeight: '700',
-    textAlign: 'center',
-    fontFamily: fonts.bodyBold,
-  },
-  dhmLabel: {
-    color: colors.mutedForeground,
-    fontSize: 12,
-    fontWeight: '600',
-    fontFamily: fonts.bodySemiBold,
-  },
-  flex: {
-    flex: 1,
-  },
-  notifyRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-    paddingVertical: spacing.sm,
-  },
-  notifyTitle: {
-    color: colors.foreground,
-    fontWeight: '500',
-    fontSize: 14,
-    fontFamily: fonts.bodySemiBold,
-  },
-  previewCard: {
-    borderWidth: 1,
-    borderColor: colors.accentBlue + '33',
-    backgroundColor: colors.accentBlue + '0D',
-    borderRadius: radius.lg,
-    padding: spacing.md,
-    gap: 4,
-  },
-  previewLabelRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  previewLabel: {
-    color: colors.accentBlue,
-    fontSize: 10,
-    fontWeight: '700',
-    letterSpacing: 1.2,
-    fontFamily: fonts.bodyBold,
-  },
-  previewTime: {
-    color: colors.foreground,
-    fontSize: 14,
-    fontWeight: '600',
-    marginTop: 8,
-    fontFamily: fonts.bodySemiBold,
-  },
-  previewSeed: {
-    color: colors.mutedForeground,
-    fontSize: 12,
-    marginTop: 4,
-    fontFamily: fonts.body,
-  },
-  error: {
-    color: colors.destruct,
-    fontSize: 13,
-    fontFamily: fonts.body,
-  },
-  saveBtn: {
-    backgroundColor: colors.primary,
-    borderRadius: 10,
-    minHeight: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  saveBtnText: {
-    color: colors.primaryForeground,
-    fontWeight: '700',
-    fontSize: 14,
-    fontFamily: fonts.bodyBold,
-  },
-  deleteBtn: {
-    backgroundColor: colors.destruct + '1A',
-    borderWidth: 1,
-    borderColor: colors.destruct,
-    borderRadius: 10,
-    minHeight: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  deleteBtnText: {
-    color: colors.destruct,
-    fontWeight: '700',
-    fontSize: 14,
-    fontFamily: fonts.bodyBold,
-  },
-});
