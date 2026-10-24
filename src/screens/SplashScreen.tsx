@@ -18,12 +18,13 @@ import {
   Easing,
   Image,
   Platform,
-  StyleSheet,
   Text,
   View,
 } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
-import { colors, fonts, splash as splashTokens } from '../theme';
+import { fonts, splash as splashTokens } from '../theme';
+import { makeStyles } from '../theme/makeStyles';
+import { useTheme } from '../theme/ThemeContext';
 
 // ─── SVG icon primitives ─────────────────────────────────────────────────────
 // Lucide Sprout — same paths as in the Make bundle
@@ -126,8 +127,59 @@ type Props = {
   onFinish: () => void;
 };
 
+const useStyles = makeStyles(({ colors }) => ({
+  // Full-screen centered container — bg matches native splash exactly
+  outer: {
+    flex: 1,
+    backgroundColor: colors.bg,
+    alignItems: 'center',
+    justifyContent: 'center',
+    // Max width constraint matches Make's max-w-[460px]
+    ...(Platform.OS === 'web' ? { maxWidth: 460, alignSelf: 'center', width: '100%' as any } : {}),
+  },
+  // Inner 208×128px relative container (w-52 h-32)
+  inner: {
+    width: splashTokens.containerWidth,   // 208px
+    height: splashTokens.containerHeight, // 128px
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  // All animated children are positioned absolute over center
+  absolute: {
+    position: 'absolute',
+  },
+  // pepper-seed.webp — size-6 = 24×24px, pixelated rendering
+  seedImage: {
+    width: splashTokens.seedSize,         // 24px
+    height: splashTokens.seedSize,        // 24px
+    // React Native respects object-fit via resizeMode; pixelated rendering
+    // is handled natively on mobile; on web we apply imageRendering via style
+    ...(Platform.OS === 'web' ? { imageRendering: 'pixelated' } as any : {}),
+  },
+  // GrowTrackLogo container — flex row, gap 8px, color primary
+  logo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: splashTokens.logoGap,            // 8px
+  },
+  // "GrowTrack" text — Pixelify Sans SemiBold 23px, primary color
+  logoText: {
+    fontFamily: fonts.pixelSemiBold,      // PixelifySans-SemiBold
+    fontSize: splashTokens.logoFontSize,  // 23px
+    color: colors.primary,
+    includeFontPadding: false,
+    lineHeight: splashTokens.logoFontSize * 1.2,
+  },
+  // "." — accent color (#4ca8ff)
+  logoDot: {
+    color: colors.accentBlue,
+  },
+}));
+
 // ─── Component ───────────────────────────────────────────────────────────────
 export function SplashScreen({ onFinish }: Props) {
+  const styles = useStyles();
+  const { colors } = useTheme();
   // Opacity values
   const seedOpacity = useRef(new Animated.Value(0)).current;
   const sproutOpacity = useRef(new Animated.Value(0)).current;
@@ -299,6 +351,9 @@ export function SplashScreen({ onFinish }: Props) {
 // ─── GrowTrackLogo ────────────────────────────────────────────────────────────
 // Matches Figma Make: flex row, gap 8px, Sprout 21px + "GrowTrack" + "." (accent)
 function GrowTrackLogo() {
+  const styles = useStyles();
+  const { colors } = useTheme();
+
   return (
     <View style={styles.logo}>
       <SproutIcon size={splashTokens.logoIconSize} color={colors.primary} />
@@ -309,53 +364,3 @@ function GrowTrackLogo() {
     </View>
   );
 }
-
-// ─── Styles ───────────────────────────────────────────────────────────────────
-const styles = StyleSheet.create({
-  // Full-screen centered container — bg matches native splash exactly
-  outer: {
-    flex: 1,
-    backgroundColor: colors.bg,           // #0d1715
-    alignItems: 'center',
-    justifyContent: 'center',
-    // Max width constraint matches Make's max-w-[460px]
-    ...(Platform.OS === 'web' ? { maxWidth: 460, alignSelf: 'center', width: '100%' as any } : {}),
-  },
-  // Inner 208×128px relative container (w-52 h-32)
-  inner: {
-    width: splashTokens.containerWidth,   // 208px
-    height: splashTokens.containerHeight, // 128px
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  // All animated children are positioned absolute over center
-  absolute: {
-    position: 'absolute',
-  },
-  // pepper-seed.webp — size-6 = 24×24px, pixelated rendering
-  seedImage: {
-    width: splashTokens.seedSize,         // 24px
-    height: splashTokens.seedSize,        // 24px
-    // React Native respects object-fit via resizeMode; pixelated rendering
-    // is handled natively on mobile; on web we apply imageRendering via style
-    ...(Platform.OS === 'web' ? { imageRendering: 'pixelated' } as any : {}),
-  },
-  // GrowTrackLogo container — flex row, gap 8px, color primary
-  logo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: splashTokens.logoGap,            // 8px
-  },
-  // "GrowTrack" text — Pixelify Sans SemiBold 23px, primary color
-  logoText: {
-    fontFamily: fonts.pixelSemiBold,      // PixelifySans-SemiBold
-    fontSize: splashTokens.logoFontSize,  // 23px
-    color: colors.primary,                // #45d483
-    includeFontPadding: false,
-    lineHeight: splashTokens.logoFontSize * 1.2,
-  },
-  // "." — accent color (#4ca8ff)
-  logoDot: {
-    color: colors.accentBlue,             // #4ca8ff
-  },
-});

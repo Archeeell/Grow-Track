@@ -1,25 +1,9 @@
-import { StyleSheet, Text, TextInput, View, type TextInputProps } from 'react-native';
-import { colors, radius, spacing } from '../theme';
+import { Text, TextInput, View, type TextInputProps } from 'react-native';
+import { radius, spacing } from '../theme';
+import { makeStyles } from '../theme/makeStyles';
+import { useTheme } from '../theme/ThemeContext';
 
-export function Field({
-  label,
-  hint,
-  ...input
-}: TextInputProps & { label: string; hint?: string }) {
-  return (
-    <View style={styles.wrap}>
-      <Text style={styles.label}>{label}</Text>
-      <TextInput
-        placeholderTextColor={colors.mutedForeground}
-        style={styles.input}
-        {...input}
-      />
-      {hint ? <Text style={styles.hint}>{hint}</Text> : null}
-    </View>
-  );
-}
-
-const styles = StyleSheet.create({
+const useStyles = makeStyles(({ colors }) => ({
   wrap: {
     gap: 6,
   },
@@ -42,4 +26,26 @@ const styles = StyleSheet.create({
     color: colors.mutedForeground,
     fontSize: 12,
   },
-});
+}));
+
+export function Field({
+  label,
+  hint,
+  placeholderTextColor,
+  ...input
+}: TextInputProps & { label: string; hint?: string }) {
+  const styles = useStyles();
+  const { colors } = useTheme();
+
+  return (
+    <View style={styles.wrap}>
+      <Text style={styles.label}>{label}</Text>
+      <TextInput
+        placeholderTextColor={placeholderTextColor ?? colors.mutedForeground}
+        style={styles.input}
+        {...input}
+      />
+      {hint ? <Text style={styles.hint}>{hint}</Text> : null}
+    </View>
+  );
+}

@@ -1,7 +1,8 @@
 import type { ReactNode } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { colors, spacing } from '../theme';
+import { spacing } from '../theme';
+import { makeStyles } from '../theme/makeStyles';
 import { Button } from '../components/Button';
 
 type Props = {
@@ -14,41 +15,7 @@ type Props = {
   noHeader?: boolean;
 };
 
-export function Screen({ title, onBack, rightLabel, onRight, children, noHeader }: Props) {
-  return (
-    <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
-      {!noHeader && (
-        <View style={styles.header}>
-          {onBack ? (
-            <Button label="← Back" variant="ghost" onPress={onBack} />
-          ) : (
-            <View style={styles.spacer} />
-          )}
-          <Text style={styles.title}>{title}</Text>
-          {rightLabel && onRight ? (
-            <Button label={rightLabel} variant="ghost" onPress={onRight} />
-          ) : (
-            <View style={styles.spacer} />
-          )}
-        </View>
-      )}
-      {children}
-    </SafeAreaView>
-  );
-}
-
-export function ScreenScroll({ children }: { children: ReactNode }) {
-  return (
-    <ScrollView
-      contentContainerStyle={styles.scroll}
-      keyboardShouldPersistTaps="handled"
-    >
-      {children}
-    </ScrollView>
-  );
-}
-
-const styles = StyleSheet.create({
+const useStyles = makeStyles(({ colors }) => ({
   safe: {
     flex: 1,
     backgroundColor: colors.bg,
@@ -74,4 +41,42 @@ const styles = StyleSheet.create({
     paddingBottom: 48,
     gap: spacing.md,
   },
-});
+}));
+
+export function Screen({ title, onBack, rightLabel, onRight, children, noHeader }: Props) {
+  const styles = useStyles();
+
+  return (
+    <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
+      {!noHeader && (
+        <View style={styles.header}>
+          {onBack ? (
+            <Button label="← Back" variant="ghost" onPress={onBack} />
+          ) : (
+            <View style={styles.spacer} />
+          )}
+          <Text style={styles.title}>{title}</Text>
+          {rightLabel && onRight ? (
+            <Button label={rightLabel} variant="ghost" onPress={onRight} />
+          ) : (
+            <View style={styles.spacer} />
+          )}
+        </View>
+      )}
+      {children}
+    </SafeAreaView>
+  );
+}
+
+export function ScreenScroll({ children }: { children: ReactNode }) {
+  const styles = useStyles();
+
+  return (
+    <ScrollView
+      contentContainerStyle={styles.scroll}
+      keyboardShouldPersistTaps="handled"
+    >
+      {children}
+    </ScrollView>
+  );
+}

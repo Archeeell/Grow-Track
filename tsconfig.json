@@ -2,5 +2,6 @@
   "compilerOptions": {
     "types": ["jest"]
   },
+  "exclude": ["figma-source", "node_modules"],
   "extends": "expo/tsconfig.base"
 }

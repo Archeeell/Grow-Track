@@ -7,11 +7,14 @@
  *           text-[10px] font-medium
  * Icon size: 21. Active: text-primary, Inactive: text-muted-foreground.
  */
-import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LeafIcon, SettingsGearIcon } from './settings/SettingsIcons';
 import { SproutIcon } from './auth/AuthIcons';
-import { colors, fonts } from '../theme';
+import { fonts } from '../theme';
+import { makeStyles } from '../theme/makeStyles';
+import { useTheme } from '../theme/ThemeContext';
+import { withAlpha } from '../theme/withAlpha';
 import type { Route } from '../types';
 
 type TabId = 'dashboard' | 'seeds' | 'settings';
@@ -33,8 +36,42 @@ function TabIcon({ id, color }: { id: TabId; color: string }) {
   return <SettingsGearIcon size={21} color={color} />;
 }
 
+const useStyles = makeStyles(({ colors }) => ({
+  bar: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    backgroundColor: withAlpha(colors.card, 0.95),
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+    paddingHorizontal: 20,
+    paddingTop: 8,
+    maxWidth: 460,
+    width: '100%',
+    alignSelf: 'center',
+  },
+  tab: {
+    flex: 1,
+    minHeight: 48,
+    maxWidth: 80,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+  },
+  label: {
+    fontSize: 10,
+    fontFamily: fonts.bodySemiBold,
+    color: colors.mutedForeground,
+    includeFontPadding: false,
+  },
+  labelActive: {
+    color: colors.primary,
+  },
+}));
+
 export function TabBar({ active, onNavigate }: Props) {
   const insets = useSafeAreaInsets();
+  const styles = useStyles();
+  const { colors } = useTheme();
   const pb = Math.max(12, insets.bottom);
 
   return (
@@ -70,35 +107,3 @@ export function TabBar({ active, onNavigate }: Props) {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  bar: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    backgroundColor: 'rgba(20,33,30,0.95)',
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-    paddingHorizontal: 20,
-    paddingTop: 8,
-    maxWidth: 460,
-    width: '100%',
-    alignSelf: 'center',
-  },
-  tab: {
-    flex: 1,
-    minHeight: 48,
-    maxWidth: 80,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 4,
-  },
-  label: {
-    fontSize: 10,
-    fontFamily: fonts.bodySemiBold,
-    color: colors.mutedForeground,
-    includeFontPadding: false,
-  },
-  labelActive: {
-    color: colors.primary,
-  },
-});

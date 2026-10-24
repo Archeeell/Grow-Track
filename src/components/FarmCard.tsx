@@ -1,9 +1,14 @@
-import { Animated, Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Animated, Image, Pressable, Text, View } from 'react-native';
 import { useEffect, useRef } from 'react';
-import { colors, fonts, radius, spacing } from '../theme';
+import { fonts, radius, spacing } from '../theme';
+import { makeStyles } from '../theme/makeStyles';
+import { useTheme } from '../theme/ThemeContext';
+import { withAlpha } from '../theme/withAlpha';
 import type { Farm, HarvestStatus } from '../types';
 import { formatCountdown, formatDateTime } from '../utils/time';
 import { getSeedIcon, getSeedItemImage } from '../data/seedIcons';
+
+const STAR_ACTIVE_COLOR = '#F2C94C';
 
 type Props = {
   farm: Farm;
@@ -33,11 +38,192 @@ const STATUS_LABELS: Record<HarvestStatus, string> = {
   harvested: 'HARVESTED',
 };
 
-const STATUS_COLORS: Record<HarvestStatus, string> = {
-  growing: colors.growing,
-  ready: colors.primary,
-  harvested: colors.mutedForeground,
-};
+const useStyles = makeStyles(({ colors }) => ({
+  card: {
+    backgroundColor: colors.card,
+    borderRadius: radius.lg,    // rounded-2xl
+    padding: spacing.md,
+    borderWidth: 1,
+    borderColor: withAlpha(colors.border, 0.70),  // border-border/70
+    gap: spacing.sm,
+  },
+  cardReady: {
+    borderColor: withAlpha(colors.primary, 0.35),
+    backgroundColor: colors.readyBg,
+  },
+  cardHarvested: {
+    opacity: 0.65,
+  },
+  topRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginBottom: 6,
+  },
+  iconBox: {
+    width: 48,
+    height: 48,
+    backgroundColor: colors.muted,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: withAlpha(colors.border, 0.60),   // border-border/60
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  itemImage: {
+    width: 32,
+    height: 32,
+  },
+  iconEmoji: {
+    fontSize: 26,
+  },
+  nameBlock: {
+    flex: 1,
+  },
+  name: {
+    color: colors.foreground,
+    fontSize: 15,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+    fontFamily: fonts.bodyBold,
+  },
+  seedName: {
+    color: colors.mutedForeground,
+    fontSize: 13,
+    marginTop: 4,
+    fontFamily: fonts.body,
+  },
+  pinBtn: {
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  pinIcon: {
+    fontSize: 18,
+    color: colors.mutedForeground,
+  },
+  pinActive: {
+    color: STAR_ACTIVE_COLOR,
+  },
+  statusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+    marginTop: 4,
+  },
+  statusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  statusDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  statusLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 1,
+    fontFamily: fonts.bodyBold,
+  },
+  progressPct: {
+    color: colors.mutedForeground,
+    fontSize: 11,
+    fontWeight: '600',
+    letterSpacing: 0.5,
+    fontFamily: fonts.bodySemiBold,
+  },
+  progressTrack: {
+    height: 6,
+    backgroundColor: colors.secondary,
+    borderRadius: 3,
+    overflow: 'hidden',
+    marginBottom: 12,
+  },
+  progressFill: {
+    height: '100%',
+    backgroundColor: colors.growing,
+    borderRadius: 3,
+  },
+  progressFillReady: {
+    backgroundColor: colors.primary,
+  },
+  countdownRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  countdown: {
+    color: colors.foreground,
+    fontSize: 20,
+    fontWeight: '700',
+    fontFamily: fonts.bodyBold,
+    flex: 1,
+  },
+  countdownReady: {
+    color: colors.primary,
+    fontSize: 16,
+  },
+  bellIcon: {
+    fontSize: 15,
+  },
+  harvestDate: {
+    color: colors.mutedForeground,
+    fontSize: 11,
+    marginTop: 2,
+    fontFamily: fonts.body,
+  },
+  actions: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    marginTop: 4,
+  },
+  actionBtn: {
+    flex: 1,
+    minHeight: 40,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: spacing.sm,
+  },
+  actionBtnFull: {
+    flex: 1,
+  },
+  actionBtnPrimary: {
+    backgroundColor: colors.primary,
+  },
+  actionBtnSecondary: {
+    backgroundColor: colors.card,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  actionBtnGhost: {
+    paddingVertical: 4,
+    minHeight: 40,
+    justifyContent: 'center',
+  },
+  actionBtnText: {
+    color: colors.mutedForeground,
+    fontWeight: '600',
+    fontSize: 13,
+    fontFamily: fonts.bodySemiBold,
+  },
+  actionBtnPrimaryText: {
+    color: colors.primaryForeground,
+    fontWeight: '700',
+    fontSize: 13,
+    fontFamily: fonts.bodyBold,
+  },
+  actionBtnGhostText: {
+    color: colors.mutedForeground,
+    fontWeight: '600',
+    fontSize: 13,
+    fontFamily: fonts.bodySemiBold,
+  },
+}));
 
 export function FarmCard({
   farm,
@@ -50,6 +236,9 @@ export function FarmCard({
   onReplanted,
   onPin,
 }: Props) {
+  const styles = useStyles();
+  const { colors } = useTheme();
+
   const progress = growProgress(farm, now);
   const progressAnim = useRef(new Animated.Value(progress)).current;
 
@@ -66,7 +255,13 @@ export function FarmCard({
   const progressPct = Math.round(progress * 100);
   const itemImage = getSeedItemImage(farm.seedId);
   const emoji = getSeedIcon(farm.seedId);
-  const statusColor = STATUS_COLORS[status];
+
+  const statusColors: Record<HarvestStatus, string> = {
+    growing: colors.growing,
+    ready: colors.primary,
+    harvested: colors.mutedForeground,
+  };
+  const statusColor = statusColors[status];
 
   return (
     <View
@@ -190,190 +385,3 @@ export function FarmCard({
 
 // Keep old FarmRow export alias
 export { FarmCard as FarmRow };
-
-const styles = StyleSheet.create({
-  card: {
-    backgroundColor: colors.card,
-    borderRadius: radius.lg,    // rounded-2xl
-    padding: spacing.md,
-    borderWidth: 1,
-    borderColor: colors.border + 'B3',  // border-border/70
-    gap: spacing.sm,
-  },
-  cardReady: {
-    borderColor: colors.primary + '80',  // ~50% opacity
-    backgroundColor: colors.primary + '0A',  // ~4% opacity
-  },
-  cardHarvested: {
-    opacity: 0.65,
-  },
-  topRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    marginBottom: 6,
-  },
-  iconBox: {
-    width: 48,
-    height: 48,
-    backgroundColor: colors.muted,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: colors.border + '99',   // border-border/60
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  itemImage: {
-    width: 32,
-    height: 32,
-  },
-  iconEmoji: {
-    fontSize: 26,
-  },
-  nameBlock: {
-    flex: 1,
-  },
-  name: {
-    color: colors.foreground,
-    fontSize: 15,
-    fontWeight: '700',
-    letterSpacing: 0.5,
-    fontFamily: fonts.bodyBold,
-  },
-  seedName: {
-    color: colors.mutedForeground,
-    fontSize: 13,
-    marginTop: 4,
-    fontFamily: fonts.body,
-  },
-  pinBtn: {
-    width: 44,
-    height: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  pinIcon: {
-    fontSize: 18,
-    color: colors.mutedForeground,
-  },
-  pinActive: {
-    color: '#f5c842',
-  },
-  statusRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 8,
-    marginTop: 4,
-  },
-  statusBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  statusDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-  },
-  statusLabel: {
-    fontSize: 11,
-    fontWeight: '700',
-    letterSpacing: 1,
-    fontFamily: fonts.bodyBold,
-  },
-  progressPct: {
-    color: colors.mutedForeground,
-    fontSize: 11,
-    fontWeight: '600',
-    letterSpacing: 0.5,
-    fontFamily: fonts.bodySemiBold,
-  },
-  progressTrack: {
-    height: 6,
-    backgroundColor: colors.secondary,
-    borderRadius: 3,
-    overflow: 'hidden',
-    marginBottom: 12,
-  },
-  progressFill: {
-    height: '100%',
-    backgroundColor: colors.growing,
-    borderRadius: 3,
-  },
-  progressFillReady: {
-    backgroundColor: colors.primary,
-  },
-  countdownRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  countdown: {
-    color: colors.foreground,
-    fontSize: 20,
-    fontWeight: '700',
-    fontFamily: fonts.bodyBold,
-    flex: 1,
-  },
-  countdownReady: {
-    color: colors.primary,
-    fontSize: 16,
-  },
-  bellIcon: {
-    fontSize: 15,
-  },
-  harvestDate: {
-    color: colors.mutedForeground,
-    fontSize: 11,
-    marginTop: 2,
-    fontFamily: fonts.body,
-  },
-  actions: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-    marginTop: 4,
-  },
-  actionBtn: {
-    flex: 1,
-    minHeight: 40,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: spacing.sm,
-  },
-  actionBtnFull: {
-    flex: 1,
-  },
-  actionBtnPrimary: {
-    backgroundColor: colors.primary,
-  },
-  actionBtnSecondary: {
-    backgroundColor: colors.card,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  actionBtnGhost: {
-    paddingVertical: 4,
-    minHeight: 40,
-    justifyContent: 'center',
-  },
-  actionBtnText: {
-    color: colors.mutedForeground,
-    fontWeight: '600',
-    fontSize: 13,
-    fontFamily: fonts.bodySemiBold,
-  },
-  actionBtnPrimaryText: {
-    color: colors.primaryForeground,
-    fontWeight: '700',
-    fontSize: 13,
-    fontFamily: fonts.bodyBold,
-  },
-  actionBtnGhostText: {
-    color: colors.mutedForeground,
-    fontWeight: '600',
-    fontSize: 13,
-    fontFamily: fonts.bodySemiBold,
-  },
-});

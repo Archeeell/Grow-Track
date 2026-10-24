@@ -1,5 +1,7 @@
-import { StyleSheet, Text, View } from 'react-native';
-import { colors, fonts } from '../theme';
+import { Text, View } from 'react-native';
+import { fonts } from '../theme';
+import { makeStyles } from '../theme/makeStyles';
+import { useTheme } from '../theme/ThemeContext';
 import type { HarvestStatus } from '../types';
 
 const labels: Record<HarvestStatus, string> = {
@@ -8,24 +10,7 @@ const labels: Record<HarvestStatus, string> = {
   harvested: 'HARVESTED',
 };
 
-const dotColors: Record<HarvestStatus, string> = {
-  growing: colors.growing,
-  ready: colors.primary,
-  harvested: colors.mutedForeground,
-};
-
-export function StatusBadge({ status }: { status: HarvestStatus }) {
-  return (
-    <View style={styles.row}>
-      <View style={[styles.dot, { backgroundColor: dotColors[status] }]} />
-      <Text style={[styles.text, { color: dotColors[status] }]}>
-        {labels[status]}
-      </Text>
-    </View>
-  );
-}
-
-const styles = StyleSheet.create({
+const useStyles = makeStyles(() => ({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -42,4 +27,26 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
     fontFamily: fonts.bodyBold,
   },
-});
+}));
+
+export function StatusBadge({ status }: { status: HarvestStatus }) {
+  const styles = useStyles();
+  const { colors } = useTheme();
+
+  const dotColors: Record<HarvestStatus, string> = {
+    growing: colors.growing,
+    ready: colors.primary,
+    harvested: colors.mutedForeground,
+  };
+
+  const statusColor = dotColors[status];
+
+  return (
+    <View style={styles.row}>
+      <View style={[styles.dot, { backgroundColor: statusColor }]} />
+      <Text style={[styles.text, { color: statusColor }]}>
+        {labels[status]}
+      </Text>
+    </View>
+  );
+}
