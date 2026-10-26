@@ -1,7 +1,7 @@
 {
   "name": "testingcursor",
   "version": "1.0.0",
-  "description": "A lightweight Expo app for tracking growth progress.",
+  "description": "A lightweight Expo app for tracking farm growth progress.",
   "keywords": [
     "expo",
     "react-native",
