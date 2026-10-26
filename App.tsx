@@ -116,7 +116,7 @@ function AppRoot() {
   const { scheme, colors, isReady } = useTheme();
   const statusBarStyle = scheme === 'dark' ? 'light' : 'dark';
 
-  const [fontsLoaded] = useFonts({
+  const [fontsLoaded, fontError] = useFonts({
     'PixelifySans-Regular': require('./assets/fonts/PixelifySans-Regular.ttf'),
     'PixelifySans-Bold': require('./assets/fonts/PixelifySans-Bold.ttf'),
     'PixelifySans-SemiBold': require('./assets/fonts/PixelifySans-SemiBold.ttf'),
@@ -129,31 +129,41 @@ function AppRoot() {
   // showSplash: true until splash 1100ms timer fires AND fonts loaded
   const [showSplash, setShowSplash] = useState(true);
   const animDoneRef = useRef(false);
+  const isFontsReady = Boolean(fontsLoaded || fontError);
 
   // Hide native splash once fonts are ready
   useEffect(() => {
-    if (fontsLoaded) {
-      ExpoSplashScreen.hideAsync();
+    if (isFontsReady) {
+      ExpoSplashScreen.hideAsync().catch(() => {});
     }
-  }, [fontsLoaded]);
+  }, [isFontsReady]);
 
   // Called by SplashScreen when its 1100ms timer fires
   const handleSplashFinish = useCallback(() => {
     animDoneRef.current = true;
-    if (fontsLoaded) {
+    if (isFontsReady) {
       setShowSplash(false);
     }
-  }, [fontsLoaded]);
+  }, [isFontsReady]);
 
   // If fonts finish after animation timer, dismiss then
   useEffect(() => {
-    if (fontsLoaded && animDoneRef.current) {
+    if (isFontsReady && animDoneRef.current) {
       setShowSplash(false);
     }
-  }, [fontsLoaded]);
+  }, [isFontsReady]);
+
+  // Safety fallback: never allow splash to hang more than 2.5 seconds
+  useEffect(() => {
+    const fallbackTimer = setTimeout(() => {
+      setShowSplash(false);
+      ExpoSplashScreen.hideAsync().catch(() => {});
+    }, 2500);
+    return () => clearTimeout(fallbackTimer);
+  }, []);
 
   // Fonts not yet loaded or prefs not ready — show splash
-  if (!isReady || (!fontsLoaded && showSplash)) {
+  if (!isReady || (!isFontsReady && showSplash)) {
     return (
       <View style={{ flex: 1, backgroundColor: colors.bg }}>
         <SplashScreen onFinish={handleSplashFinish} />
