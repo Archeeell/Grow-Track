@@ -14,7 +14,7 @@ GrowTrack adalah aplikasi timer farm untuk Growtopia. Catat farm dan jenis seed,
 
 ## Teknologi
 
-- **React Native 0.86** dan **React 19**
+- **React Native 0.88** dan **React 19**
 - **Expo SDK 57**, TypeScript
 - **AsyncStorage** untuk penyimpanan lokal
 - **expo-notifications** untuk notifikasi native

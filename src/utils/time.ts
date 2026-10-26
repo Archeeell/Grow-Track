@@ -4,7 +4,7 @@ export function nowMs(clock = Date.now): number {
   return clock();
 }
 
-/** Growtopia wiki formula: rarity^3 + 30 * rarity seconds, rounded to minutes. */
+/** Growtopia formula: rarity^3 + 30 * rarity seconds, rounded to minutes. */
 export function rarityGrowMinutes(rarity: number): number {
   const seconds = rarity ** 3 + 30 * rarity;
   return Math.max(1, Math.round(seconds / 60));

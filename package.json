@@ -1,6 +1,18 @@
 {
   "name": "testingcursor",
   "version": "1.0.0",
+  "description": "A lightweight Expo app for tracking farm growth progress.",
+  "keywords": [
+    "expo",
+    "react-native",
+    "growth-tracking"
+  ],
+  "author": "Archell",
+  "license": "MIT",
+  "homepage": "https://github.com/Archeeell/Grow-Track#readme",
+  "bugs": {
+    "url": "https://github.com/Archeeell/Grow-Track/issues"
+  },
   "main": "index.ts",
   "dependencies": {
     "@expo/metro-runtime": "~58.0.15",
