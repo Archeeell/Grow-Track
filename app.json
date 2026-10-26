@@ -6,11 +6,6 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
-    "splash": {
-      "image": "./assets/splash-icon.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#0d1715"
-    },
     "plugins": [
       [
         "expo-notifications",
@@ -27,7 +22,9 @@
           "resizeMode": "contain",
           "backgroundColor": "#0d1715"
         }
-      ]
+      ],
+      "expo-font",
+      "expo-status-bar"
     ],
     "ios": {
       "supportsTablet": true,
@@ -54,9 +51,6 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    },
-    "notification": {
-      "color": "#3DDC84"
     }
   }
 }

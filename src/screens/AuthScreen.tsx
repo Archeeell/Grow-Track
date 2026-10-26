@@ -18,6 +18,7 @@ import {
   StyleSheet,
   Text,
   TextInput,
+  type TextInputInstance,
   TouchableOpacity,
   View,
 } from 'react-native';
@@ -166,7 +167,7 @@ type AuthFieldProps = {
   isPassword?: boolean;
   visible?: boolean;
   isSignup: boolean;
-  inputRef?: React.RefObject<TextInput | null>;
+  inputRef?: React.RefObject<TextInputInstance | null>;
   onChangeText: (v: string) => void;
   onToggleVisible?: () => void;
   onSubmitEditing: () => void;
@@ -214,7 +215,7 @@ function AuthField({
       <Text style={fldStyles.label}>{label}</Text>
       <View style={fldStyles.inputWrapper}>
         <TextInput
-          ref={inputRef as React.RefObject<TextInput>}
+          ref={inputRef}
           style={[
             fldStyles.input,
             ...(isPassword ? [fldStyles.inputPassword] : []),
@@ -274,10 +275,10 @@ export function AuthScreen({ page, onNavigate, onAuthSuccess }: Props) {
   const [notice, setNotice] = useState('');
   const [detailsOpen, setDetailsOpen] = useState(false);
 
-  const nameRef = useRef<TextInput | null>(null);
-  const emailRef = useRef<TextInput | null>(null);
-  const passwordRef = useRef<TextInput | null>(null);
-  const confirmRef = useRef<TextInput | null>(null);
+  const nameRef = useRef<TextInputInstance | null>(null);
+  const emailRef = useRef<TextInputInstance | null>(null);
+  const passwordRef = useRef<TextInputInstance | null>(null);
+  const confirmRef = useRef<TextInputInstance | null>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const enterOpacity = useRef(new Animated.Value(0)).current;
