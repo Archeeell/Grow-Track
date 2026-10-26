@@ -7,6 +7,8 @@ import { withAlpha } from '../theme/withAlpha';
 import type { Farm, HarvestStatus } from '../types';
 import { formatCountdown, formatDateTime } from '../utils/time';
 import { getSeedIcon, getSeedItemImage } from '../data/seedIcons';
+import { StarIcon } from './dashboard/DashboardIcons';
+import { BellIcon } from './settings/SettingsIcons';
 
 const STAR_ACTIVE_COLOR = '#F2C94C';
 
@@ -299,9 +301,11 @@ export function FarmCard({
             accessibilityRole="button"
             accessibilityLabel={farm.pinned ? 'Unpin farm' : 'Pin farm'}
           >
-            <Text style={[styles.pinIcon, farm.pinned && styles.pinActive]}>
-              {farm.pinned ? '⭐' : '☆'}
-            </Text>
+            <StarIcon
+              size={18}
+              color={farm.pinned ? STAR_ACTIVE_COLOR : colors.mutedForeground}
+              fill={farm.pinned ? STAR_ACTIVE_COLOR : 'none'}
+            />
           </Pressable>
         </View>
 
@@ -344,11 +348,11 @@ export function FarmCard({
             {isHarvested
               ? 'Waiting to replant'
               : isReady
-              ? '✓ Ready to harvest'
+              ? 'Ready to harvest'
               : formatCountdown(farm.readyAt, now)}
           </Text>
           {farm.notificationsEnabled && (
-            <Text style={styles.bellIcon}>🔔</Text>
+            <BellIcon size={14} color={colors.accentBlue} />
           )}
         </View>
 
