@@ -15,6 +15,7 @@ import { makeStyles } from '../theme/makeStyles';
 import { withAlpha } from '../theme/withAlpha';
 import { confirmAction } from '../utils/confirm';
 import { minutesToDHM, parseNonNegInt } from '../utils/time';
+import { XIcon } from '../components/settings/SettingsIcons';
 
 type Props = {
   seedId?: string;
@@ -209,8 +210,8 @@ export function SeedFormScreen({ seedId, onBack }: Props) {
     <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
       {/* Header */}
       <View style={styles.header}>
-        <Pressable onPress={onBack} style={styles.closeBtn} accessibilityRole="button">
-          <Text style={styles.closeBtnText}>✕</Text>
+        <Pressable onPress={onBack} style={styles.closeBtn} accessibilityRole="button" accessibilityLabel="Close">
+          <XIcon size={20} color={colors.mutedForeground} />
         </Pressable>
         <Text style={styles.title}>{existing ? 'Edit Seed' : 'Add Seed'}</Text>
         <View style={styles.headerSpacer} />
