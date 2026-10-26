@@ -1,5 +1,5 @@
 /**
- * src/theme.ts — Backward-compatible re-export barrel.
+ * src/theme.ts — Backward-compatible re-export module.
  *
  * All theme definitions have been moved into src/theme/:
  *   - palettes.ts  → darkPalette, lightPalette, ColorPalette, Scheme, ThemePreference
