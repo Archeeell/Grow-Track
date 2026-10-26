@@ -9,6 +9,7 @@
   ],
   "author": "Archell",
   "license": "MIT",
+  "homepage": "https://github.com/Archeeell/Grow-Track#readme",
   "main": "index.ts",
   "dependencies": {
     "@expo/metro-runtime": "~58.0.15",
