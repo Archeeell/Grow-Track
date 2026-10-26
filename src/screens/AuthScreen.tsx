@@ -46,6 +46,7 @@ import {
   MailIcon,
   SproutIcon,
 } from '../components/auth/AuthIcons';
+import { CheckIcon } from '../components/dashboard/DashboardIcons';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 export type AuthPage = 'login' | 'signup' | 'forgot';
@@ -461,7 +462,7 @@ export function AuthScreen({ page, onNavigate, onAuthSuccess }: Props) {
                   <View style={styles.rememberRow}>
                     <TouchableOpacity onPress={() => setRemember(!remember)} style={styles.rememberLabel} activeOpacity={0.7}>
                       <View style={[styles.checkbox, remember && styles.checkboxChecked]}>
-                        {remember && <Text style={styles.checkmark}>{'✓'}</Text>}
+                        {remember && <CheckIcon size={11} color={colors.primaryForeground} />}
                       </View>
                       <Text style={styles.rememberText}>Remember me</Text>
                     </TouchableOpacity>
@@ -476,7 +477,7 @@ export function AuthScreen({ page, onNavigate, onAuthSuccess }: Props) {
                   <View>
                     <TouchableOpacity onPress={() => { setAgreed(!agreed); setErrors((e) => ({ ...e, agreement: '' })); }} style={styles.agreementRow} activeOpacity={0.7}>
                       <View style={[styles.checkbox, agreed && styles.checkboxChecked]}>
-                        {agreed && <Text style={styles.checkmark}>{'✓'}</Text>}
+                        {agreed && <CheckIcon size={11} color={colors.primaryForeground} />}
                       </View>
                       <Text style={styles.agreementText}>
                         {'I agree to the '}<Text style={styles.agreementLink}>Terms</Text>{' and '}<Text style={styles.agreementLink}>Privacy Policy</Text>.
