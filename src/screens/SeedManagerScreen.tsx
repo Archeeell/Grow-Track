@@ -17,6 +17,8 @@ import { makeStyles } from '../theme/makeStyles';
 import { withAlpha } from '../theme/withAlpha';
 import { getSeedIcon, getSeedItemImage } from '../data/seedIcons';
 import { formatGrowTime } from '../utils/time';
+import { PlusIcon } from '../components/dashboard/DashboardIcons';
+import { InfoIcon } from '../components/settings/SettingsIcons';
 import type { Route } from '../types';
 
 type Props = {
@@ -265,7 +267,7 @@ export function SeedManagerScreen({ onBack, onAdd, onEdit, onNavigate }: Props) 
           accessibilityRole="button"
           accessibilityLabel="Add seed"
         >
-          <Text style={styles.addBtnText}>+</Text>
+          <PlusIcon size={20} color={colors.primaryForeground} />
         </Pressable>
       </View>
 
@@ -361,17 +363,23 @@ export function SeedManagerScreen({ onBack, onAdd, onEdit, onNavigate }: Props) 
           </View>
         )}
 
-        <Text style={styles.footerNote}>
-          Starter seed times may change in-game.
-        </Text>
-
-        <Pressable
-          style={styles.restoreBtn}
-          onPress={() => void restoreStarterSeeds()}
-          accessibilityRole="button"
-        >
-          <Text style={styles.restoreBtnText}>↺ Restore defaults</Text>
-        </Pressable>
+        <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 10, marginTop: 16, borderTopWidth: 1, borderTopColor: colors.border, paddingTop: 16 }}>
+          <InfoIcon size={16} color={colors.accentBlue} />
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontSize: 12, color: colors.mutedForeground, fontFamily: fonts.body }}>
+              Starter seed times may change in-game.
+            </Text>
+            <Pressable
+              onPress={() => void restoreStarterSeeds()}
+              accessibilityRole="button"
+              style={{ marginTop: 4, alignSelf: 'flex-start' }}
+            >
+              <Text style={{ fontSize: 12, color: colors.accentBlue, fontFamily: fonts.bodySemiBold }}>
+                Restore defaults
+              </Text>
+            </Pressable>
+          </View>
+        </View>
       </ScrollView>
 
       <TabBar active="seeds" onNavigate={onNavigate} />

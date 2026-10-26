@@ -143,8 +143,8 @@ describe('SettingsScreen — overlays', () => {
     fireEvent.press(getByText('Default grow-time behavior'));
     await waitFor(() => {
       expect(getByText('Default grow time')).toBeTruthy();
-      expect(getAllByText('Use seed time').length).toBeGreaterThanOrEqual(1);
-      expect(getByText('Manual only')).toBeTruthy();
+      expect(getByText("Use the seed's grow duration")).toBeTruthy();
+      expect(getByText('Enter duration manually')).toBeTruthy();
     });
   });
 

@@ -38,12 +38,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const account = await readAccount();
-      if (cancelled) return;
-      if (account) {
-        setAuthState({ status: 'authenticated', account });
-      } else {
-        setAuthState({ status: 'unauthenticated' });
+      try {
+        const account = await readAccount();
+        if (cancelled) return;
+        if (account) {
+          setAuthState({ status: 'authenticated', account });
+        } else {
+          setAuthState({ status: 'unauthenticated' });
+        }
+      } catch (err) {
+        console.warn('AuthContext readAccount fallback:', err);
+        if (!cancelled) {
+          setAuthState({ status: 'unauthenticated' });
+        }
       }
     })();
     return () => {

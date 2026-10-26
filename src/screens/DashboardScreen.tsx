@@ -1,10 +1,12 @@
-import { useMemo, useState } from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useEffect, useMemo, useState } from "react";
 import {
   FlatList,
   KeyboardAvoidingView,
   Modal,
   Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -12,13 +14,25 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { FarmCard } from "../components/FarmCard";
+import { GridFarmCard } from "../components/GridFarmCard";
 import { TabBar } from "../components/TabBar";
 import {
+  CheckCheckIcon,
   CheckIcon,
   ChevronDownIcon,
+  LayoutGridIcon,
+  ListIcon,
+  PlusIcon,
+  Repeat2Icon,
   SearchIcon,
   StarIcon,
 } from "../components/dashboard/DashboardIcons";
+import { SproutIcon } from "../components/auth/AuthIcons";
+import {
+  Clock3Icon,
+  SettingsGearIcon,
+  XIcon,
+} from "../components/settings/SettingsIcons";
 import { useNow } from "../hooks/useNow";
 import { useStore } from "../store";
 import { fonts, radius, spacing } from "../theme";
@@ -53,7 +67,21 @@ type ActionModal =
   | { type: "replant"; farm: Farm; seed: Seed | undefined };
 
 type FilterStatus = "all" | HarvestStatus | "pinned";
-type SortMode = "recommended" | "name" | "time";
+
+export const SORT_OPTIONS = [
+  "Recommended",
+  "Ready first",
+  "Farthest harvest",
+  "Alphabetical A → Z",
+  "Alphabetical Z → A",
+  "Recently added",
+  "Recently updated",
+  "Favorite first",
+] as const;
+
+export type FarmSort = (typeof SORT_OPTIONS)[number];
+
+export type FarmView = "list" | "grid";
 
 const FILTER_OPTIONS: { id: FilterStatus; label: string }[] = [
   { id: "all", label: "All farms" },
@@ -82,6 +110,7 @@ const SECTION_LABELS: Record<HarvestStatus, string> = {
 
 type ListItem =
   | { type: "section"; status: HarvestStatus; count: number }
+  | { type: "header"; title: string; count: number }
   | { type: "farm"; farm: Farm; status: HarvestStatus };
 
 const useStyles = makeStyles(({ colors }) => ({
@@ -259,6 +288,54 @@ const useStyles = makeStyles(({ colors }) => ({
   pinnedBtnTextActive: {
     color: colors.foreground,
   },
+  sortToolbar: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: spacing.lg,
+    marginBottom: spacing.xs,
+    zIndex: 28,
+  },
+  sortAnchor: {
+    position: "relative",
+    zIndex: 34,
+  },
+  sortBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    minHeight: 36,
+    paddingVertical: 4,
+  },
+  sortLabel: {
+    fontSize: 11,
+    fontFamily: fonts.body,
+    color: colors.mutedForeground,
+  },
+  sortValue: {
+    fontSize: 11,
+    fontFamily: fonts.bodySemiBold,
+    color: colors.foreground,
+    maxWidth: 160,
+  },
+  sortMenu: {
+    position: "absolute",
+    top: 40,
+    left: 0,
+    width: 224,
+    maxHeight: 320,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.popover,
+    padding: 6,
+    zIndex: 50,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 12,
+  },
   dropdownBackdrop: {
     ...(StyleSheet.absoluteFill as object),
     zIndex: 25,
@@ -315,8 +392,32 @@ const useStyles = makeStyles(({ colors }) => ({
   },
   toolbarRight: {
     flexDirection: "row",
-    gap: 4,
+    gap: 6,
     alignItems: "center",
+  },
+  viewToggleGroup: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.card,
+    padding: 2,
+    gap: 2,
+  },
+  viewToggleBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 6,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  viewToggleBtnActive: {
+    backgroundColor: colors.secondary,
+  },
+  gridRow: {
+    gap: 12,
+    justifyContent: "space-between",
   },
   iconBtn: {
     width: 44,
@@ -675,8 +776,40 @@ export function DashboardScreen({
   const [modal, setModal] = useState<ActionModal | null>(null);
   const [filterStatus, setFilterStatus] = useState<FilterStatus>("all");
   const [filterDropdownOpen, setFilterDropdownOpen] = useState(false);
+  const [sortMode, setSortMode] = useState<FarmSort>("Recommended");
+  const [sortDropdownOpen, setSortDropdownOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<FarmView>("list");
   const [showSearch, setShowSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const saved = await AsyncStorage.getItem("growtrack-farm-view");
+        if (mounted && saved) {
+          try {
+            const parsed = JSON.parse(saved);
+            if (parsed === "grid" || parsed === "list") setViewMode(parsed);
+          } catch {
+            if (saved === "grid" || saved === "list") setViewMode(saved);
+          }
+        }
+      } catch (err) {
+        console.warn("AsyncStorage farm-view error:", err);
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const updateViewMode = (mode: FarmView) => {
+    setViewMode(mode);
+    AsyncStorage.setItem("growtrack-farm-view", JSON.stringify(mode)).catch(
+      () => {},
+    );
+  };
 
   const filterLabel = useMemo(() => {
     switch (filterStatus) {
@@ -722,21 +855,80 @@ export function DashboardScreen({
 
     // Sort
     list.sort((a, b) => {
-      // Pinned farms first
-      if ((b.pinned ? 1 : 0) !== (a.pinned ? 1 : 0)) {
-        return (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0);
-      }
       const sa = getStatus(a.readyAt, now, a.harvestedAt);
       const sb = getStatus(b.readyAt, now, b.harvestedAt);
-      if (rank[sa] !== rank[sb]) return rank[sa] - rank[sb];
-      return new Date(a.readyAt).getTime() - new Date(b.readyAt).getTime();
+      const aReadyTime = new Date(a.readyAt).getTime();
+      const bReadyTime = new Date(b.readyAt).getTime();
+      const aFav = a.pinned ? 1 : 0;
+      const bFav = b.pinned ? 1 : 0;
+
+      switch (sortMode) {
+        case "Ready first":
+          if (rank[sa] !== rank[sb]) return rank[sa] - rank[sb];
+          return aReadyTime - bReadyTime;
+
+        case "Farthest harvest": {
+          const aHarvested = a.harvestedAt ? 1 : 0;
+          const bHarvested = b.harvestedAt ? 1 : 0;
+          if (aHarvested !== bHarvested) return aHarvested - bHarvested;
+          return bReadyTime - aReadyTime;
+        }
+
+        case "Alphabetical A → Z":
+          return (a.name || "").localeCompare(b.name || "");
+
+        case "Alphabetical Z → A":
+          return (b.name || "").localeCompare(a.name || "");
+
+        case "Recently added": {
+          const aCreated = new Date(a.createdAt || 0).getTime() || 0;
+          const bCreated = new Date(b.createdAt || 0).getTime() || 0;
+          return bCreated - aCreated;
+        }
+
+        case "Recently updated": {
+          const aUpdated = new Date(a.plantedAt || a.createdAt || 0).getTime() || 0;
+          const bUpdated = new Date(b.plantedAt || b.createdAt || 0).getTime() || 0;
+          return bUpdated - aUpdated;
+        }
+
+        case "Favorite first":
+          if (aFav !== bFav) return bFav - aFav;
+          return ((rank[sa] ?? 2) - (rank[sb] ?? 2)) || (aReadyTime - bReadyTime) || 0;
+
+        case "Recommended":
+        default:
+          if (aFav !== bFav) return bFav - aFav;
+          if ((rank[sa] ?? 2) !== (rank[sb] ?? 2)) return (rank[sa] ?? 2) - (rank[sb] ?? 2);
+          return (aReadyTime - bReadyTime) || 0;
+      }
     });
 
     return list;
-  }, [farms, now, filterStatus, searchQuery]);
+  }, [farms, now, filterStatus, searchQuery, sortMode]);
 
   // Build flat list with section headers
   const listData = useMemo((): ListItem[] => {
+    if (sorted.length === 0) return [];
+
+    if (sortMode !== "Recommended" && sortMode !== "Ready first") {
+      const headerTitle =
+        filterStatus === "all"
+          ? "YOUR FARMS"
+          : filterStatus === "pinned"
+            ? "PINNED FARMS"
+            : filterStatus.toUpperCase();
+
+      const items: ListItem[] = [
+        { type: "header", title: headerTitle, count: sorted.length },
+      ];
+      for (const farm of sorted) {
+        const s = getStatus(farm.readyAt, now, farm.harvestedAt);
+        items.push({ type: "farm", farm, status: s });
+      }
+      return items;
+    }
+
     const groups: Partial<Record<HarvestStatus, Farm[]>> = {};
     for (const farm of sorted) {
       const s = getStatus(farm.readyAt, now, farm.harvestedAt);
@@ -755,7 +947,7 @@ export function DashboardScreen({
       }
     }
     return items;
-  }, [sorted, now]);
+  }, [sorted, now, sortMode, filterStatus]);
 
   const totalFarms = farms.length;
   const readyCount = farms.filter(
@@ -861,6 +1053,18 @@ export function DashboardScreen({
         </View>
       );
     }
+    if (item.type === "header") {
+      return (
+        <View style={styles.sectionHeader}>
+          <Text
+            style={[styles.sectionLabel, { color: colors.mutedForeground }]}
+          >
+            {item.title}
+          </Text>
+          <Text style={styles.sectionCount}>· {item.count}</Text>
+        </View>
+      );
+    }
     return (
       <FarmCard
         farm={item.farm}
@@ -879,17 +1083,20 @@ export function DashboardScreen({
   return (
     <SafeAreaView style={styles.safe} edges={["top", "left", "right"]}>
       {/* ── Dropdown Backdrop ────────────────────────────────────────────── */}
-      {filterDropdownOpen && (
+      {(filterDropdownOpen || sortDropdownOpen) && (
         <Pressable
           style={styles.dropdownBackdrop}
-          onPress={() => setFilterDropdownOpen(false)}
+          onPress={() => {
+            setFilterDropdownOpen(false);
+            setSortDropdownOpen(false);
+          }}
         />
       )}
       {/* ── Header ─────────────────────────────────────────────────────── */}
       <View style={styles.headerWrap}>
         <View style={styles.headerRow}>
           <View style={styles.logoRow}>
-            <Text style={styles.logoEmoji}>🌱</Text>
+            <SproutIcon size={24} color={colors.primary} />
             <Text style={styles.logoText}>
               GrowTrack<Text style={styles.logoDot}>.</Text>
             </Text>
@@ -900,7 +1107,7 @@ export function DashboardScreen({
             accessibilityRole="button"
             accessibilityLabel="Settings"
           >
-            <Text style={styles.settingsIcon}>⚙️</Text>
+            <SettingsGearIcon size={18} color={colors.mutedForeground} />
           </Pressable>
         </View>
         <Text style={styles.subtitle}>A little care. A better harvest.</Text>
@@ -924,9 +1131,7 @@ export function DashboardScreen({
           onPress={() => setFilterStatus("all")}
         >
           <View style={styles.statLabelRow}>
-            <Text style={[styles.statIcon, { color: colors.accentBlue }]}>
-              🌱
-            </Text>
+            <SproutIcon size={14} color={colors.accentBlue} />
             <Text style={[styles.statCellLabel, { color: colors.accentBlue }]}>
               Total farms
             </Text>
@@ -943,7 +1148,7 @@ export function DashboardScreen({
           }
         >
           <View style={styles.statLabelRow}>
-            <Text style={[styles.statIcon, { color: colors.primary }]}>✅</Text>
+            <CheckCheckIcon size={14} color={colors.primary} />
             <Text style={[styles.statCellLabel, { color: colors.primary }]}>
               Ready
             </Text>
@@ -960,7 +1165,7 @@ export function DashboardScreen({
           }
         >
           <View style={styles.statLabelRow}>
-            <Text style={[styles.statIcon, { color: colors.growing }]}>⏱️</Text>
+            <Clock3Icon size={14} color={colors.growing} />
             <Text style={[styles.statCellLabel, { color: colors.growing }]}>
               Growing
             </Text>
@@ -981,7 +1186,10 @@ export function DashboardScreen({
                 styles.filterBtn,
                 filterStatus !== "pinned" && styles.filterBtnActive,
               ]}
-              onPress={() => setFilterDropdownOpen((prev) => !prev)}
+              onPress={() => {
+                setFilterDropdownOpen((prev) => !prev);
+                setSortDropdownOpen(false);
+              }}
               accessibilityRole="button"
               accessibilityLabel={`Filter farms: ${filterLabel}`}
             >
@@ -1089,15 +1297,121 @@ export function DashboardScreen({
               color={showSearch ? colors.primary : colors.mutedForeground}
             />
           </Pressable>
-          <Pressable
-            style={[styles.iconBtn, styles.addBtn]}
-            onPress={onAddFarm}
-            accessibilityRole="button"
-            accessibilityLabel="Add farm"
+
+          {/* Farm view toggle */}
+          <View
+            style={styles.viewToggleGroup}
+            accessibilityLabel="Farm view"
           >
-            <Text style={styles.addBtnText}>+ Add farm</Text>
-          </Pressable>
+            <Pressable
+              style={[
+                styles.viewToggleBtn,
+                viewMode === "list" && styles.viewToggleBtnActive,
+              ]}
+              onPress={() => updateViewMode("list")}
+              accessibilityRole="button"
+              accessibilityLabel="List view"
+              accessibilityState={{ selected: viewMode === "list" }}
+            >
+              <ListIcon
+                size={17}
+                color={
+                  viewMode === "list" ? colors.primary : colors.mutedForeground
+                }
+              />
+            </Pressable>
+            <Pressable
+              style={[
+                styles.viewToggleBtn,
+                viewMode === "grid" && styles.viewToggleBtnActive,
+              ]}
+              onPress={() => updateViewMode("grid")}
+              accessibilityRole="button"
+              accessibilityLabel="Grid view"
+              accessibilityState={{ selected: viewMode === "grid" }}
+            >
+              <LayoutGridIcon
+                size={17}
+                color={
+                  viewMode === "grid" ? colors.primary : colors.mutedForeground
+                }
+              />
+            </Pressable>
+          </View>
         </View>
+      </View>
+
+      {/* ── Sort Toolbar ─────────────────────────────────────────────────── */}
+      <View style={styles.sortToolbar}>
+        <View style={styles.sortAnchor}>
+          <Pressable
+            style={styles.sortBtn}
+            onPress={() => {
+              setSortDropdownOpen((prev) => !prev);
+              setFilterDropdownOpen(false);
+            }}
+            accessibilityRole="button"
+            accessibilityLabel={`Sort farms: ${sortMode}`}
+          >
+            <Text style={styles.sortLabel}>Sort:</Text>
+            <Text style={styles.sortValue} numberOfLines={1}>
+              {sortMode}
+            </Text>
+            <ChevronDownIcon size={12} color={colors.mutedForeground} />
+          </Pressable>
+
+          {sortDropdownOpen && (
+            <View style={styles.sortMenu}>
+              <ScrollView
+                showsVerticalScrollIndicator={false}
+                keyboardShouldPersistTaps="handled"
+              >
+                <Text style={styles.dropdownHeader}>SORT BY</Text>
+                {SORT_OPTIONS.map((option) => {
+                  const isSelected = sortMode === option;
+                  return (
+                    <Pressable
+                      key={option}
+                      style={[
+                        styles.dropdownItem,
+                        isSelected && styles.dropdownItemSelected,
+                      ]}
+                      onPress={() => {
+                        setSortMode(option);
+                        setSortDropdownOpen(false);
+                      }}
+                      accessibilityRole="menuitem"
+                    >
+                      <View style={styles.dropdownItemCheck}>
+                        {isSelected && (
+                          <CheckIcon size={14} color={colors.primary} />
+                        )}
+                      </View>
+                      <Text
+                        style={[
+                          styles.dropdownItemText,
+                          isSelected && styles.dropdownItemTextSelected,
+                        ]}
+                      >
+                        {option}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </ScrollView>
+            </View>
+          )}
+        </View>
+
+        <Pressable
+          style={[styles.iconBtn, styles.addBtn]}
+          onPress={onAddFarm}
+          accessibilityRole="button"
+          accessibilityLabel="Add farm"
+        >
+          <PlusIcon size={14} color={colors.primaryForeground} />
+          <Text style={styles.addBtnText}>Add farm</Text>
+        </Pressable>
       </View>
 
       {/* ── Search bar ────────────────────────────────────────────────────── */}
@@ -1114,58 +1428,146 @@ export function DashboardScreen({
         </View>
       )}
 
-      {/* ── Farm List ─────────────────────────────────────────────────────── */}
-      <FlatList
-        data={listData}
-        keyExtractor={(item, idx) =>
-          item.type === "section"
-            ? `section-${item.status}`
-            : `farm-${item.farm.id}`
-        }
-        contentContainerStyle={styles.list}
-        ListEmptyComponent={
-          farms.length === 0 ? (
-            <View style={styles.empty}>
-              <Text style={styles.emptyEmoji}>🌿</Text>
-              <Text style={styles.emptyTitle}>No farms yet</Text>
-              <Text style={styles.emptyBody}>
-                Add your first farm and start tracking its harvest time.
-              </Text>
-              <Pressable style={styles.emptyBtn} onPress={onAddFarm}>
-                <Text style={styles.emptyBtnText}>+ Add your first farm</Text>
-              </Pressable>
-              <Text style={styles.emptyHint}>
-                Your timers keep growing, even when you're away.
-              </Text>
-            </View>
-          ) : (
-            <View style={styles.emptyFilter}>
-              <Text style={styles.emptyFilterTitle}>
-                {searchQuery.trim()
-                  ? "No matching farms"
-                  : `No ${filterStatus === "all" ? "" : filterStatus} farms`}
-              </Text>
-              <Text style={styles.emptyFilterBody}>
-                {searchQuery.trim()
-                  ? `No farms matched "${searchQuery.trim()}"`
-                  : "Try changing your filter to see more farms."}
-              </Text>
-              <Pressable
-                style={styles.emptyFilterBtn}
-                onPress={() => {
-                  if (searchQuery.trim()) setSearchQuery("");
-                  else setFilterStatus("all");
-                }}
-              >
-                <Text style={styles.emptyFilterBtnText}>
-                  {searchQuery.trim() ? "Clear search" : "Show all farms"}
+      {/* ── Farm List / Grid ────────────────────────────────────────────────── */}
+      {viewMode === "grid" ? (
+        <FlatList
+          key="grid-view"
+          data={sorted}
+          keyExtractor={(item) => `grid-${item.id}`}
+          numColumns={2}
+          columnWrapperStyle={styles.gridRow}
+          contentContainerStyle={styles.list}
+          ListHeaderComponent={
+            sorted.length > 0 ? (
+              <View style={styles.sectionHeader}>
+                <Text
+                  style={[
+                    styles.sectionLabel,
+                    { color: colors.mutedForeground },
+                  ]}
+                >
+                  {filterStatus === "all"
+                    ? "YOUR FARMS"
+                    : filterStatus === "pinned"
+                      ? "PINNED FARMS"
+                      : filterStatus.toUpperCase()}
                 </Text>
-              </Pressable>
-            </View>
-          )
-        }
-        renderItem={renderItem}
-      />
+                <Text style={styles.sectionCount}>· {sorted.length}</Text>
+              </View>
+            ) : undefined
+          }
+          ListEmptyComponent={
+            farms.length === 0 ? (
+              <View style={styles.empty}>
+                <SproutIcon size={40} color={colors.primary} />
+                <Text style={styles.emptyTitle}>No farms yet</Text>
+                <Text style={styles.emptyBody}>
+                  Add your first farm and start tracking its harvest time.
+                </Text>
+                <Pressable style={styles.emptyBtn} onPress={onAddFarm}>
+                  <PlusIcon size={14} color={colors.primaryForeground} />
+                  <Text style={styles.emptyBtnText}>Add your first farm</Text>
+                </Pressable>
+                <Text style={styles.emptyHint}>
+                  Your timers keep growing, even when you're away.
+                </Text>
+              </View>
+            ) : (
+              <View style={styles.emptyFilter}>
+                <Text style={styles.emptyFilterTitle}>
+                  {searchQuery.trim()
+                    ? "No matching farms"
+                    : `No ${filterStatus === "all" ? "" : filterStatus} farms`}
+                </Text>
+                <Text style={styles.emptyFilterBody}>
+                  {searchQuery.trim()
+                    ? `No farms matched "${searchQuery.trim()}"`
+                    : "Try changing your filter to see more farms."}
+                </Text>
+                <Pressable
+                  style={styles.emptyFilterBtn}
+                  onPress={() => {
+                    if (searchQuery.trim()) setSearchQuery("");
+                    else setFilterStatus("all");
+                  }}
+                >
+                  <Text style={styles.emptyFilterBtnText}>
+                    {searchQuery.trim() ? "Clear search" : "Show all farms"}
+                  </Text>
+                </Pressable>
+              </View>
+            )
+          }
+          renderItem={({ item }) => {
+            const s = getStatus(item.readyAt, now, item.harvestedAt);
+            return (
+              <GridFarmCard
+                farm={item}
+                status={s}
+                now={now}
+                onPress={() => onEditFarm(item.id)}
+                onPin={() => togglePin(item)}
+              />
+            );
+          }}
+        />
+      ) : (
+        <FlatList
+          key="list-view"
+          data={listData}
+          keyExtractor={(item) =>
+            item.type === "section"
+              ? `section-${item.status}`
+              : item.type === "header"
+                ? `header-${item.title}`
+                : `farm-${item.farm.id}`
+          }
+          contentContainerStyle={styles.list}
+          ListEmptyComponent={
+            farms.length === 0 ? (
+              <View style={styles.empty}>
+                <SproutIcon size={40} color={colors.primary} />
+                <Text style={styles.emptyTitle}>No farms yet</Text>
+                <Text style={styles.emptyBody}>
+                  Add your first farm and start tracking its harvest time.
+                </Text>
+                <Pressable style={styles.emptyBtn} onPress={onAddFarm}>
+                  <PlusIcon size={14} color={colors.primaryForeground} />
+                  <Text style={styles.emptyBtnText}>Add your first farm</Text>
+                </Pressable>
+                <Text style={styles.emptyHint}>
+                  Your timers keep growing, even when you're away.
+                </Text>
+              </View>
+            ) : (
+              <View style={styles.emptyFilter}>
+                <Text style={styles.emptyFilterTitle}>
+                  {searchQuery.trim()
+                    ? "No matching farms"
+                    : `No ${filterStatus === "all" ? "" : filterStatus} farms`}
+                </Text>
+                <Text style={styles.emptyFilterBody}>
+                  {searchQuery.trim()
+                    ? `No farms matched "${searchQuery.trim()}"`
+                    : "Try changing your filter to see more farms."}
+                </Text>
+                <Pressable
+                  style={styles.emptyFilterBtn}
+                  onPress={() => {
+                    if (searchQuery.trim()) setSearchQuery("");
+                    else setFilterStatus("all");
+                  }}
+                >
+                  <Text style={styles.emptyFilterBtnText}>
+                    {searchQuery.trim() ? "Clear search" : "Show all farms"}
+                  </Text>
+                </Pressable>
+              </View>
+            )
+          }
+          renderItem={renderItem}
+        />
+      )}
 
       {/* ── Bottom Tab Bar ───────────────────────────────────────────────── */}
       <TabBar active="dashboard" onNavigate={onNavigate} />
@@ -1189,10 +1591,10 @@ export function DashboardScreen({
               <>
                 <View style={styles.sheetHeader}>
                   <Text style={styles.sheetTitle}>
-                    {modal.type === "swap" ? "↔ Swap Farm" : "🌱 Replant Farm"}
+                    {modal.type === "swap" ? "Swap Farm" : "Replant Farm"}
                   </Text>
-                  <Pressable onPress={closeModal} style={styles.closeBtn}>
-                    <Text style={styles.closeBtnText}>✕</Text>
+                  <Pressable onPress={closeModal} style={styles.closeBtn} accessibilityLabel="Close dialog">
+                    <XIcon size={20} color={colors.mutedForeground} />
                   </Pressable>
                 </View>
 
@@ -1263,7 +1665,10 @@ export function DashboardScreen({
 
                 {modalPreviewReady ? (
                   <View style={styles.previewCard}>
-                    <Text style={styles.previewLabel}>⏱ ESTIMATED HARVEST</Text>
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                      <Clock3Icon size={12} color={colors.accentBlue} />
+                      <Text style={styles.previewLabel}>ESTIMATED HARVEST</Text>
+                    </View>
                     <Text style={styles.previewTime}>
                       {new Date(modalPreviewReady).toLocaleString(undefined, {
                         month: "short",

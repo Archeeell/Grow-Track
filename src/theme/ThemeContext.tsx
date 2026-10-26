@@ -53,13 +53,21 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   // Load preferences once on mount
   useEffect(() => {
     let mounted = true;
-    loadPrefs().then((loaded) => {
-      if (mounted) {
-        setPrefsState(loaded);
-        isLoadedRef.current = true;
-        setIsReady(true);
-      }
-    });
+    loadPrefs()
+      .then((loaded) => {
+        if (mounted) {
+          setPrefsState(loaded);
+          isLoadedRef.current = true;
+          setIsReady(true);
+        }
+      })
+      .catch((err) => {
+        console.warn('ThemeContext loadPrefs fallback:', err);
+        if (mounted) {
+          isLoadedRef.current = true;
+          setIsReady(true);
+        }
+      });
     return () => {
       mounted = false;
     };

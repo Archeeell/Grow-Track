@@ -2,6 +2,10 @@ import React from 'react';
 import { fireEvent, render } from '@testing-library/react-native';
 import { DashboardScreen } from '../src/screens/DashboardScreen';
 
+jest.mock('@react-native-async-storage/async-storage', () =>
+  require('@react-native-async-storage/async-storage/jest/async-storage-mock')
+);
+
 jest.mock('react-native-safe-area-context', () => {
   const { View } = require('react-native');
   return {
@@ -114,6 +118,64 @@ describe('DashboardScreen Toolbar & Filter Dropdown', () => {
 
     fireEvent.press(pinnedBtn);
     // When pinned is active, filter dropdown displays "All farms" as inactive
+    expect(getByLabelText('Filter farms: All farms')).toBeTruthy();
+  });
+
+  it('renders sort dropdown button with "Sort: Recommended" by default', () => {
+    const { getByLabelText, getByText } = render(<DashboardScreen {...defaultProps} />);
+    expect(getByLabelText('Sort farms: Recommended')).toBeTruthy();
+    expect(getByText('Sort:')).toBeTruthy();
+    expect(getByText('Recommended')).toBeTruthy();
+  });
+
+  it('opens sort dropdown menu showing "SORT BY" and all 8 options when clicked', () => {
+    const { getByLabelText, getByText, getAllByRole, queryByText } = render(
+      <DashboardScreen {...defaultProps} />
+    );
+
+    expect(queryByText('SORT BY')).toBeNull();
+
+    // Click sort button to open dropdown
+    fireEvent.press(getByLabelText('Sort farms: Recommended'));
+
+    expect(getByText('SORT BY')).toBeTruthy();
+    const menuItems = getAllByRole('menuitem');
+    expect(menuItems.length).toBe(8);
+    expect(getByText('Ready first')).toBeTruthy();
+    expect(getByText('Farthest harvest')).toBeTruthy();
+    expect(getByText('Alphabetical A → Z')).toBeTruthy();
+    expect(getByText('Alphabetical Z → A')).toBeTruthy();
+    expect(getByText('Recently added')).toBeTruthy();
+    expect(getByText('Recently updated')).toBeTruthy();
+    expect(getByText('Favorite first')).toBeTruthy();
+  });
+
+  it('selects "Alphabetical A → Z" option, updates sort label, and closes dropdown', () => {
+    const { getByLabelText, getByText, queryByText } = render(
+      <DashboardScreen {...defaultProps} />
+    );
+
+    fireEvent.press(getByLabelText('Sort farms: Recommended'));
+    fireEvent.press(getByText('Alphabetical A → Z'));
+
+    expect(queryByText('SORT BY')).toBeNull();
+    expect(getByLabelText('Sort farms: Alphabetical A → Z')).toBeTruthy();
+  });
+
+  it('renders list view by default and toggles to grid view when grid button is pressed', () => {
+    const { getByLabelText } = render(<DashboardScreen {...defaultProps} />);
+
+    const listBtn = getByLabelText('List view');
+    const gridBtn = getByLabelText('Grid view');
+    expect(listBtn).toBeTruthy();
+    expect(gridBtn).toBeTruthy();
+
+    // Toggle to grid view
+    fireEvent.press(gridBtn);
+    expect(getByLabelText('READY FARM, ready. Open farm details')).toBeTruthy();
+
+    // Toggle back to list view
+    fireEvent.press(listBtn);
     expect(getByLabelText('Filter farms: All farms')).toBeTruthy();
   });
 });

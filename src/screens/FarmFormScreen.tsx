@@ -27,6 +27,8 @@ import {
   minutesToDHM,
   parseNonNegInt,
 } from '../utils/time';
+import { CheckIcon, SearchIcon } from '../components/dashboard/DashboardIcons';
+import { Clock3Icon, XIcon } from '../components/settings/SettingsIcons';
 
 type Props = {
   farmId?: string;
@@ -449,8 +451,8 @@ export function FarmFormScreen({ farmId, onBack }: Props) {
     <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
       {/* Header */}
       <View style={styles.header}>
-        <Pressable onPress={onBack} style={styles.closeBtn} accessibilityRole="button">
-          <Text style={styles.closeBtnText}>✕</Text>
+        <Pressable onPress={onBack} style={styles.closeBtn} accessibilityRole="button" accessibilityLabel="Close">
+          <XIcon size={20} color={colors.mutedForeground} />
         </Pressable>
         <Text style={styles.title}>{existing ? 'Edit Farm' : 'Add Farm'}</Text>
         <View style={styles.headerSpacer} />
@@ -552,6 +554,7 @@ export function FarmFormScreen({ farmId, onBack }: Props) {
         {previewReady ? (
           <View style={styles.previewCard}>
             <View style={styles.previewLabelRow}>
+              <Clock3Icon size={14} color={colors.accentBlue} />
               <Text style={styles.previewLabel}>ESTIMATED HARVEST</Text>
             </View>
             <Text style={styles.previewTime}>{formatDateTime(previewReady)}</Text>
@@ -599,6 +602,7 @@ function SeedChip({
   onPress: () => void;
 }) {
   const styles = useStyles();
+  const { colors } = useTheme();
   return (
     <Pressable
       accessibilityRole="button"
@@ -615,7 +619,7 @@ function SeedChip({
       <Text style={[styles.seedChipText, selected && styles.seedChipTextOn]} numberOfLines={2}>
         {label}
       </Text>
-      {selected && <Text style={styles.checkmark}>✓</Text>}
+      {selected && <CheckIcon size={14} color={colors.primary} />}
     </Pressable>
   );
 }

@@ -8,6 +8,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Animated,
   Easing,
+  Image,
   Modal,
   Platform,
   Pressable,
@@ -108,7 +109,7 @@ const useStyles = makeStyles(({ colors }) => ({
     ...StyleSheet.absoluteFill as object, justifyContent: 'flex-end', alignItems: 'center', zIndex: 41,
   },
   sheet: {
-    width: '100%', maxWidth: 460, maxHeight: '92%',
+    width: '100%', maxWidth: 460, maxHeight: '75%',
     borderTopLeftRadius: 24, borderTopRightRadius: 24,
     borderWidth: 1, borderColor: colors.border, backgroundColor: colors.bg,
     paddingHorizontal: 20, paddingTop: 20,
@@ -120,8 +121,8 @@ const useStyles = makeStyles(({ colors }) => ({
   closeBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
 
   dialogContainer: {
-    ...StyleSheet.absoluteFill as object, justifyContent: 'flex-end', alignItems: 'center',
-    zIndex: 41, paddingBottom: '30%' as unknown as number, paddingHorizontal: 20,
+    ...StyleSheet.absoluteFill as object, justifyContent: 'center', alignItems: 'center',
+    zIndex: 41, paddingHorizontal: 20,
   },
   dialog: {
     width: '100%', maxWidth: 360, borderRadius: 16, borderWidth: 1, borderColor: colors.border,
@@ -162,6 +163,27 @@ const useStyles = makeStyles(({ colors }) => ({
   accountSync: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 12 },
   accountSyncText: { fontSize: 12, color: colors.mutedForeground, fontFamily: fonts.body, includeFontPadding: false },
   accountNotice: { fontSize: 12, lineHeight: 20, color: colors.mutedForeground, fontFamily: fonts.body, marginTop: 16, includeFontPadding: false },
+
+  // Onboarding
+  onboardIllustration: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 16, marginVertical: 32 },
+  onboardArrowPrimary: { fontSize: 18, color: colors.primary },
+  onboardArrowAccent: { fontSize: 18, color: colors.accentBlue },
+  onboardThumb: { width: 64, height: 64, borderRadius: 12, borderWidth: 1, borderColor: withAlpha(colors.border, 0.60), backgroundColor: colors.muted, alignItems: 'center', justifyContent: 'center' },
+  onboardThumbImg: { width: 40, height: 40 },
+  onboardHeading: { fontFamily: fonts.pixel, fontSize: 28, color: colors.foreground, textAlign: 'center', includeFontPadding: false },
+  onboardBody: { marginTop: 12, fontSize: 14, lineHeight: 22, color: colors.mutedForeground, fontFamily: fonts.body, textAlign: 'center', includeFontPadding: false },
+  onboardDots: { flexDirection: 'row', justifyContent: 'center', gap: 8, marginVertical: 24 },
+  onboardDotActive: { height: 6, width: 20, borderRadius: 3, backgroundColor: colors.primary },
+  onboardDotInactive: { height: 6, width: 6, borderRadius: 3, backgroundColor: colors.secondary },
+  onboardBtnPrimary: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', minHeight: 44, borderRadius: 10, paddingHorizontal: 16, backgroundColor: colors.primary },
+  onboardBtnPrimaryText: { fontSize: 14, fontFamily: fonts.bodySemiBold, color: colors.primaryForeground, includeFontPadding: false },
+  onboardBtnSecondary: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', minHeight: 44, borderRadius: 10, paddingHorizontal: 16, marginTop: 8 },
+  onboardBtnSecondaryText: { fontSize: 14, fontFamily: fonts.bodySemiBold, color: colors.mutedForeground, includeFontPadding: false },
+  onboardFarmPreview: { borderRadius: 12, backgroundColor: colors.card, padding: 16, marginTop: 20 },
+  onboardFarmRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 },
+  onboardFarmGrowing: { fontSize: 12, fontFamily: fonts.bodySemiBold, color: '#e6c16a', includeFontPadding: false },
+  onboardFarmReady: { fontSize: 12, fontFamily: fonts.bodySemiBold, color: colors.primary, includeFontPadding: false },
+  onboardProgressBar: { height: 6, borderRadius: 3, backgroundColor: colors.primary },
 }));
 
 // ─── Row ──────────────────────────────────────────────────────────────────────
@@ -484,10 +506,8 @@ export function SettingsScreen({ onNavigate }: Props) {
             </View>
           ) : (
             <View style={styles.sheetContainer} pointerEvents="box-none">
-              <Animated.ScrollView
+              <Animated.View
                 style={[styles.sheet, { transform: [{ translateY: sheetTy }] }]}
-                contentContainerStyle={{ paddingBottom: Math.max(24, insets.bottom) }}
-                showsVerticalScrollIndicator={false}
               >
                 <View style={styles.dragHandle} />
                 <View style={styles.sheetHeader}>
@@ -504,28 +524,32 @@ export function SettingsScreen({ onNavigate }: Props) {
                     <XIcon size={20} color={colors.mutedForeground} />
                   </Pressable>
                 </View>
-
-                {overlay === 'theme' && <ThemeOverlay prefs={prefs} onUpdate={updatePrefs} />}
-                {overlay === 'behavior' && (
-                  <BehaviorOverlay
-                    prefs={prefs}
-                    onUpdate={(p) => { updatePrefs(p); closeOverlay(); }}
-                  />
-                )}
-                {overlay === 'account' && (
-                  <AccountOverlay
-                    guest={guest}
-                    account={account}
-                    onSignOut={handleSignOut}
-                    onNavigate={onNavigate}
-                    onClose={closeOverlay}
-                  />
-                )}
-                {overlay === 'about' && <AboutOverlay />}
-                {overlay === 'onboarding' && (
-                  <Text style={styles.bodyText}>Getting started guide coming soon.</Text>
-                )}
-              </Animated.ScrollView>
+                <ScrollView
+                  contentContainerStyle={{ paddingBottom: Math.max(24, insets.bottom) }}
+                  showsVerticalScrollIndicator={false}
+                >
+                  {overlay === 'theme' && <ThemeOverlay prefs={prefs} onUpdate={updatePrefs} />}
+                  {overlay === 'behavior' && (
+                    <BehaviorOverlay
+                      prefs={prefs}
+                      onUpdate={(p) => { updatePrefs(p); closeOverlay(); }}
+                    />
+                  )}
+                  {overlay === 'account' && (
+                    <AccountOverlay
+                      guest={guest}
+                      account={account}
+                      onSignOut={handleSignOut}
+                      onNavigate={onNavigate}
+                      onClose={closeOverlay}
+                    />
+                  )}
+                  {overlay === 'about' && <AboutOverlay />}
+                  {overlay === 'onboarding' && (
+                    <OnboardingOverlay onClose={closeOverlay} />
+                  )}
+                </ScrollView>
+              </Animated.View>
             </View>
           )}
         </Modal>
@@ -635,30 +659,34 @@ function BehaviorOverlay({
 }) {
   const styles = useStyles();
   const { colors } = useTheme();
-  const opts: Array<{ id: 'seed' | 'manual'; title: string; detail: string }> = [
-    { id: 'seed', title: 'Use seed time', detail: "Farm timers follow the seed's grow time." },
-    { id: 'manual', title: 'Manual only', detail: 'Set a custom time for each farm.' },
+  const opts: Array<{ id: 'seed' | 'manual'; title: string }> = [
+    { id: 'seed', title: "Use the seed's grow duration" },
+    { id: 'manual', title: 'Enter duration manually' },
   ];
   return (
     <View>
-      {opts.map(({ id, title, detail }) => (
-        <Pressable
-          key={id}
-          onPress={() => onUpdate({ behavior: id })}
-          style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
-          accessibilityRole="button"
-        >
-          <View style={styles.rowIcon}>
-            {prefs.behavior === id
-              ? <CheckIcon size={18} color={colors.primary} />
-              : <View style={{ width: 18, height: 18 }} />}
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.rowTitle}>{title}</Text>
-            <Text style={styles.rowDetail}>{detail}</Text>
-          </View>
-        </Pressable>
-      ))}
+      {opts.map(({ id, title }) => {
+        const active = prefs.behavior === id;
+        return (
+          <Pressable
+            key={id}
+            onPress={() => onUpdate({ behavior: id })}
+            style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
+            accessibilityRole="button"
+            accessibilityState={{ selected: active }}
+          >
+            <View style={styles.rowIcon}>
+              {active
+                ? <CheckIcon size={18} color={colors.primary} />
+                : <Clock3Icon size={18} color={colors.mutedForeground} />}
+            </View>
+            <Text style={[styles.rowTitle, active && { color: colors.primary }]}>
+              {title}
+            </Text>
+            <ChevronRightIcon size={15} color={colors.mutedForeground} />
+          </Pressable>
+        );
+      })}
     </View>
   );
 }
@@ -746,6 +774,131 @@ function AboutOverlay() {
       <Text style={[styles.bodyText, { fontSize: 12 }]}>
         Version 1.0.0 · Timers and preferences saved on this device. Browser harvest alerts require notification permission; notifications while the app is closed need future background support.
       </Text>
+    </View>
+  );
+}
+
+// ─── OnboardingOverlay ────────────────────────────────────────────────────────
+const ONBOARD_SLIDES = [
+  {
+    heading: 'Keep every farm growing.',
+    body: "Know exactly when it's ready. Your next harvest starts here.",
+    extra: 'none' as const,
+    primaryBtn: 'Get Started',
+    secondaryBtn: 'I already have an account',
+  },
+  {
+    heading: 'All your farms. One view.',
+    body: 'Keep track of multiple worlds without checking each one individually.',
+    extra: 'farms' as const,
+    primaryBtn: 'Continue',
+    secondaryBtn: null,
+  },
+  {
+    heading: "Know when it's ready.",
+    body: 'Get notified when your farm reaches harvest time.',
+    extra: 'progress' as const,
+    primaryBtn: 'Start Tracking',
+    secondaryBtn: null,
+  },
+];
+
+function OnboardingOverlay({ onClose }: { onClose: () => void }) {
+  const styles = useStyles();
+  const { colors } = useTheme();
+  const [step, setStep] = useState(0);
+  const slide = ONBOARD_SLIDES[step];
+
+  const handlePrimary = () => {
+    if (step < ONBOARD_SLIDES.length - 1) {
+      setStep(step + 1);
+    } else {
+      onClose();
+    }
+  };
+
+  return (
+    <View style={{ alignItems: 'center' }}>
+      {/* Illustration */}
+      <View style={styles.onboardIllustration}>
+        <View style={styles.onboardThumb}>
+          <Image
+            source={require('../../assets/items/pepper-item.webp')}
+            style={styles.onboardThumbImg}
+            resizeMode="contain"
+          />
+        </View>
+        <Text style={styles.onboardArrowPrimary}>→</Text>
+        <SproutIcon size={48} color={colors.primary} />
+        <Text style={styles.onboardArrowAccent}>→</Text>
+        <View style={styles.onboardThumb}>
+          <Image
+            source={require('../../assets/items/chandelier-item.webp')}
+            style={styles.onboardThumbImg}
+            resizeMode="contain"
+          />
+        </View>
+      </View>
+
+      {/* Heading & body */}
+      <Text style={styles.onboardHeading} allowFontScaling={false}>
+        {slide.heading}
+      </Text>
+      <Text style={styles.onboardBody}>{slide.body}</Text>
+
+      {/* Slide 2 extra: farm list preview */}
+      {slide.extra === 'farms' && (
+        <View style={[styles.onboardFarmPreview, { width: '100%' }]}>
+          {[
+            { world: 'ARCHELLGT', status: 'Ready' },
+            { world: 'PEPPERSTASH', status: 'Growing' },
+          ].map((f) => (
+            <View key={f.world} style={[styles.onboardFarmRow, { alignItems: 'center' }]}>
+              <Text style={styles.onboardBody}>{f.world}</Text>
+              <Text style={f.status === 'Ready' ? styles.onboardFarmReady : styles.onboardFarmGrowing}>
+                {f.status}
+              </Text>
+            </View>
+          ))}
+        </View>
+      )}
+
+      {/* Slide 3 extra: progress bar preview */}
+      {slide.extra === 'progress' && (
+        <View style={[styles.onboardFarmPreview, { width: '100%' }]}>
+          <View style={styles.onboardFarmRow}>
+            <Text style={styles.onboardFarmGrowing}>Growing</Text>
+            <Text style={styles.onboardFarmReady}>✓ Ready</Text>
+          </View>
+          <View style={styles.onboardProgressBar} />
+        </View>
+      )}
+
+      {/* Dots */}
+      <View style={styles.onboardDots}>
+        {ONBOARD_SLIDES.map((_, i) => (
+          <View
+            key={i}
+            style={i === step ? styles.onboardDotActive : styles.onboardDotInactive}
+          />
+        ))}
+      </View>
+
+      {/* Buttons */}
+      <Pressable
+        onPress={handlePrimary}
+        style={({ pressed }) => [styles.onboardBtnPrimary, { width: '100%' }, pressed && styles.btnPressedStyle]}
+      >
+        <Text style={styles.onboardBtnPrimaryText}>{slide.primaryBtn}</Text>
+      </Pressable>
+      {slide.secondaryBtn && (
+        <Pressable
+          onPress={onClose}
+          style={({ pressed }) => [styles.onboardBtnSecondary, pressed && { opacity: 0.7 }]}
+        >
+          <Text style={styles.onboardBtnSecondaryText}>{slide.secondaryBtn}</Text>
+        </Pressable>
+      )}
     </View>
   );
 }
