@@ -14,6 +14,7 @@ import {
   syncFarmNotification,
 } from './notifications';
 import { loadData, mergeStarterSeeds, newId, saveData } from './storage';
+import { DEFAULT_SEEDS } from './data/defaultSeeds';
 import type { Farm, Seed } from './types';
 import { addMinutes, cycleMinutes, getStatus } from './utils/time';
 
@@ -49,26 +50,35 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const data = await loadData();
-      if (cancelled) return;
-      setFarms(data.farms);
-      setSeeds(data.seeds);
-      setReady(true);
-      await syncAllNotifications(data.farms);
+      try {
+        const data = await loadData();
+        if (cancelled) return;
+        setFarms(data.farms);
+        setSeeds(data.seeds);
+        setReady(true);
+        await syncAllNotifications(data.farms);
 
-      const updated = [...data.farms];
-      let changed = false;
-      for (let i = 0; i < updated.length; i += 1) {
-        const farm = updated[i];
-        const fired = await fireDueNotification(farm);
-        if (fired) {
-          updated[i] = { ...farm, lastNotifiedReadyAt: farm.readyAt };
-          changed = true;
+        const updated = [...data.farms];
+        let changed = false;
+        for (let i = 0; i < updated.length; i += 1) {
+          const farm = updated[i];
+          const fired = await fireDueNotification(farm);
+          if (fired) {
+            updated[i] = { ...farm, lastNotifiedReadyAt: farm.readyAt };
+            changed = true;
+          }
         }
-      }
-      if (changed) {
-        setFarms(updated);
-        await saveData({ farms: updated, seeds: data.seeds });
+        if (changed) {
+          setFarms(updated);
+          await saveData({ farms: updated, seeds: data.seeds });
+        }
+      } catch (err) {
+        console.warn('Store loadData fallback on error:', err);
+        if (!cancelled) {
+          setFarms([]);
+          setSeeds(DEFAULT_SEEDS);
+          setReady(true);
+        }
       }
     })();
     return () => {
