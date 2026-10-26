@@ -3,7 +3,7 @@
  * Extracted from Figma Make (FarmDashboard.tsx, live DOM).
  * Scaled with strokeWidth={2 / (size / 24)}.
  */
-import Svg, { Circle, Path } from 'react-native-svg';
+import Svg, { Circle, Path, Rect } from 'react-native-svg';
 
 function sw(size: number) {
   return 2 / (size / 24);
@@ -65,6 +65,148 @@ export function SearchIcon({ size, color }: { size: number; color: string }) {
       <Circle cx={11} cy={11} r={8} stroke={color} strokeWidth={sw(size)} />
       <Path
         d="m21 21-4.3-4.3"
+        stroke={color}
+        strokeWidth={sw(size)}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
+export function CheckCheckIcon({ size, color }: { size: number; color: string }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M18 6 7 17l-5-5"
+        stroke={color}
+        strokeWidth={sw(size)}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Path
+        d="m22 10-7.5 7.5L13 16"
+        stroke={color}
+        strokeWidth={sw(size)}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
+export function PlusIcon({ size, color }: { size: number; color: string }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M5 12h14"
+        stroke={color}
+        strokeWidth={sw(size)}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Path
+        d="M12 5v14"
+        stroke={color}
+        strokeWidth={sw(size)}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
+export function Repeat2Icon({ size, color }: { size: number; color: string }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="m2 9 3-3 3 3"
+        stroke={color}
+        strokeWidth={sw(size)}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Path
+        d="M13 18H7a2 2 0 0 1-2-2V6"
+        stroke={color}
+        strokeWidth={sw(size)}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Path
+        d="m22 15-3 3-3-3"
+        stroke={color}
+        strokeWidth={sw(size)}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Path
+        d="M11 6h6a2 2 0 0 1 2 2v10"
+        stroke={color}
+        strokeWidth={sw(size)}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
+export function ListIcon({ size, color }: { size: number; color: string }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"
+        stroke={color}
+        strokeWidth={sw(size)}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
+export function LayoutGridIcon({ size, color }: { size: number; color: string }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Rect
+        x={3}
+        y={3}
+        width={7}
+        height={7}
+        rx={1}
+        stroke={color}
+        strokeWidth={sw(size)}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Rect
+        x={14}
+        y={3}
+        width={7}
+        height={7}
+        rx={1}
+        stroke={color}
+        strokeWidth={sw(size)}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Rect
+        x={14}
+        y={14}
+        width={7}
+        height={7}
+        rx={1}
+        stroke={color}
+        strokeWidth={sw(size)}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Rect
+        x={3}
+        y={14}
+        width={7}
+        height={7}
+        rx={1}
         stroke={color}
         strokeWidth={sw(size)}
         strokeLinecap="round"
