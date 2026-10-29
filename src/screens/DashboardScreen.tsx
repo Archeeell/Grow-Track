@@ -13,6 +13,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useAuth } from "../auth/AuthContext";
 import { FarmCard } from "../components/FarmCard";
 import { GridFarmCard } from "../components/GridFarmCard";
 import { TabBar } from "../components/TabBar";
@@ -31,6 +32,7 @@ import { SproutIcon } from "../components/auth/AuthIcons";
 import {
   Clock3Icon,
   SettingsGearIcon,
+  ShieldCheckIcon,
   XIcon,
 } from "../components/settings/SettingsIcons";
 import { useNow } from "../hooks/useNow";
@@ -142,7 +144,7 @@ const useStyles = makeStyles(({ colors }) => ({
     color: colors.primary,
   },
   logoText: {
-    color: colors.foreground,
+    color: colors.primary,
     fontSize: 23,
     fontWeight: "600",
     fontFamily: fonts.pixel,
@@ -227,12 +229,32 @@ const useStyles = makeStyles(({ colors }) => ({
     letterSpacing: 1,
   },
 
+  // ── Guest Usage ──────────────────────────────────────────────────────────
+  guestUsage: {
+    marginTop: 2,
+    marginBottom: 12,
+    marginHorizontal: spacing.lg,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  guestUsageText: {
+    fontSize: 11,
+    fontFamily: fonts.body,
+    color: colors.mutedForeground,
+    includeFontPadding: false,
+  },
+  guestUsageCount: {
+    fontVariant: ["tabular-nums"],
+  },
+
   // ── Toolbar ──────────────────────────────────────────────────────────────
   toolbar: {
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: spacing.lg,
     marginBottom: spacing.xs,
+    marginTop: spacing.sm,
     gap: spacing.sm,
     zIndex: 30,
   },
@@ -530,12 +552,37 @@ const useStyles = makeStyles(({ colors }) => ({
     fontFamily: fonts.bodyBold,
   },
   emptyHint: {
-    color: colors.mutedForeground,
-    fontSize: 11,
-    textAlign: "center",
-    fontFamily: fonts.body,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
     marginTop: 4,
+    paddingTop: 4,
   },
+  emptyHintText: {
+    color: colors.mutedForeground,
+    fontSize: 10,
+    fontFamily: fonts.body,
+    includeFontPadding: false,
+  },
+  
+  // ── List Footer ──────────────────────────────────────────────────────────
+  listFooter: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    paddingTop: 3,
+    paddingBottom: 20,
+    marginTop: 8,
+  },
+  listFooterText: {
+    color: colors.mutedForeground,
+    fontSize: 10,
+    fontFamily: fonts.body,
+    includeFontPadding: false,
+  },
+
   emptyFilter: {
     borderRadius: 12,
     borderWidth: 1,
@@ -755,6 +802,7 @@ export function DashboardScreen({
 }: Props) {
   const styles = useStyles();
   const { colors } = useTheme();
+  const { authState } = useAuth();
 
   const statusColors: Record<HarvestStatus, string> = {
     ready: colors.primary,
@@ -772,6 +820,9 @@ export function DashboardScreen({
     updateFarm,
   } = useStore();
   const now = useNow(1000);
+  
+  const account = authState.status === 'authenticated' ? authState.account : null;
+  const isGuest = !account || account.mode === 'guest';
 
   const [modal, setModal] = useState<ActionModal | null>(null);
   const [filterStatus, setFilterStatus] = useState<FilterStatus>("all");
@@ -1111,7 +1162,9 @@ export function DashboardScreen({
           </Pressable>
         </View>
         <Text style={styles.subtitle}>A little care. A better harvest.</Text>
-        <Text style={styles.greeting}>Good {getHour()}, Guest</Text>
+        <Text style={styles.greeting}>
+          Good {getHour()}, {account?.name ?? 'Guest'}
+        </Text>
         <Text style={styles.farmSummary}>
           {totalFarms === 0
             ? "No farms yet"
@@ -1175,6 +1228,19 @@ export function DashboardScreen({
           </Text>
         </Pressable>
       </View>
+
+      {/* ── Guest Usage Info ──────────────────────────────────────────────── */}
+      {isGuest && (
+        <View style={styles.guestUsage}>
+          <Text style={styles.guestUsageText}>
+            Guest <Text style={styles.guestUsageText}>·</Text>{" "}
+            <Text style={[styles.guestUsageText, styles.guestUsageCount]}>
+              {totalFarms} / 5 farms
+            </Text>
+          </Text>
+          <Text style={styles.guestUsageText}>Saved on this device</Text>
+        </View>
+      )}
 
       {/* ── Toolbar ─────────────────────────────────────────────────────── */}
       <View style={styles.toolbar}>
@@ -1468,9 +1534,12 @@ export function DashboardScreen({
                   <PlusIcon size={14} color={colors.primaryForeground} />
                   <Text style={styles.emptyBtnText}>Add your first farm</Text>
                 </Pressable>
-                <Text style={styles.emptyHint}>
-                  Your timers keep growing, even when you're away.
-                </Text>
+                <View style={styles.emptyHint}>
+                  <ShieldCheckIcon size={12} color={colors.mutedForeground} />
+                  <Text style={styles.emptyHintText}>
+                    Your timers keep growing, even when you're away.
+                  </Text>
+                </View>
               </View>
             ) : (
               <View style={styles.emptyFilter}>
@@ -1510,6 +1579,16 @@ export function DashboardScreen({
               />
             );
           }}
+          ListFooterComponent={
+            farms.length > 0 ? (
+              <View style={styles.listFooter}>
+                <ShieldCheckIcon size={12} color={colors.mutedForeground} />
+                <Text style={styles.listFooterText}>
+                  Your timers keep growing, even when you're away.
+                </Text>
+              </View>
+            ) : undefined
+          }
         />
       ) : (
         <FlatList
@@ -1535,9 +1614,12 @@ export function DashboardScreen({
                   <PlusIcon size={14} color={colors.primaryForeground} />
                   <Text style={styles.emptyBtnText}>Add your first farm</Text>
                 </Pressable>
-                <Text style={styles.emptyHint}>
-                  Your timers keep growing, even when you're away.
-                </Text>
+                <View style={styles.emptyHint}>
+                  <ShieldCheckIcon size={12} color={colors.mutedForeground} />
+                  <Text style={styles.emptyHintText}>
+                    Your timers keep growing, even when you're away.
+                  </Text>
+                </View>
               </View>
             ) : (
               <View style={styles.emptyFilter}>
@@ -1566,6 +1648,16 @@ export function DashboardScreen({
             )
           }
           renderItem={renderItem}
+          ListFooterComponent={
+            farms.length > 0 ? (
+              <View style={styles.listFooter}>
+                <ShieldCheckIcon size={12} color={colors.mutedForeground} />
+                <Text style={styles.listFooterText}>
+                  Your timers keep growing, even when you're away.
+                </Text>
+              </View>
+            ) : undefined
+          }
         />
       )}
 

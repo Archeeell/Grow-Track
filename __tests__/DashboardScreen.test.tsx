@@ -62,6 +62,14 @@ jest.mock('../src/store', () => ({
   })),
 }));
 
+jest.mock('../src/auth/AuthContext', () => ({
+  useAuth: jest.fn(() => ({
+    authState: { status: 'authenticated', account: { mode: 'guest', name: 'Guest' } },
+    setAccount: jest.fn(),
+    signOut: jest.fn(),
+  })),
+}));
+
 describe('DashboardScreen Toolbar & Filter Dropdown', () => {
   const defaultProps = {
     onAddFarm: jest.fn(),
@@ -177,5 +185,13 @@ describe('DashboardScreen Toolbar & Filter Dropdown', () => {
     // Toggle back to list view
     fireEvent.press(listBtn);
     expect(getByLabelText('Filter farms: All farms')).toBeTruthy();
+  });
+
+  it('renders guest usage indicator showing "Guest · 2 / 5 farms" and "Saved on this device"', () => {
+    const { getByText } = render(<DashboardScreen {...defaultProps} />);
+    
+    // Check guest account info is visible (specific text to avoid collision with greeting)
+    expect(getByText(/2 \/ 5 farms/)).toBeTruthy();
+    expect(getByText('Saved on this device')).toBeTruthy();
   });
 });

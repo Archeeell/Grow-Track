@@ -8,7 +8,6 @@ import { AuthProvider, useAuth } from './src/auth/AuthContext';
 import { AuthScreen, type AuthPage } from './src/screens/AuthScreen';
 import { DashboardScreen } from './src/screens/DashboardScreen';
 import { FarmFormScreen } from './src/screens/FarmFormScreen';
-import { SeedFormScreen } from './src/screens/SeedFormScreen';
 import { SeedManagerScreen } from './src/screens/SeedManagerScreen';
 import { SettingsScreen } from './src/screens/SettingsScreen';
 import { SplashScreen } from './src/screens/SplashScreen';
@@ -40,21 +39,10 @@ function Root() {
     );
   }
 
-  if (route.name === 'seed-form') {
-    return (
-      <SeedFormScreen
-        seedId={route.seedId}
-        onBack={() => setRoute({ name: 'seeds' })}
-      />
-    );
-  }
-
   if (route.name === 'seeds') {
     return (
       <SeedManagerScreen
         onBack={() => setRoute({ name: 'dashboard' })}
-        onAdd={() => setRoute({ name: 'seed-form' })}
-        onEdit={(seedId) => setRoute({ name: 'seed-form', seedId })}
         onNavigate={navigate}
       />
     );

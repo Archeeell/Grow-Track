@@ -7,7 +7,7 @@ import { withAlpha } from '../theme/withAlpha';
 import type { Farm, HarvestStatus } from '../types';
 import { formatCountdown, formatDateTime } from '../utils/time';
 import { getSeedIcon, getSeedItemImage } from '../data/seedIcons';
-import { StarIcon } from './dashboard/DashboardIcons';
+import { StarIcon, CheckCheckIcon, Repeat2Icon } from './dashboard/DashboardIcons';
 import { BellIcon } from './settings/SettingsIcons';
 
 const STAR_ACTIVE_COLOR = '#F2C94C';
@@ -50,7 +50,7 @@ const useStyles = makeStyles(({ colors }) => ({
     gap: spacing.sm,
   },
   cardReady: {
-    borderColor: withAlpha(colors.primary, 0.35),
+    borderColor: withAlpha(colors.primary, 0.30),  // border-primary/30
     backgroundColor: colors.readyBg,
   },
   cardHarvested: {
@@ -191,6 +191,11 @@ const useStyles = makeStyles(({ colors }) => ({
     justifyContent: 'center',
     paddingHorizontal: spacing.sm,
   },
+  actionBtnIcon: {
+    flex: 0,
+    width: 40,
+    paddingHorizontal: 0,
+  },
   actionBtnFull: {
     flex: 1,
   },
@@ -309,26 +314,31 @@ export function FarmCard({
           </Pressable>
         </View>
 
-        {/* Status + progress % row */}
+        {/* Status badge (no progress % for ready) */}
         <View style={styles.statusRow}>
           <View style={styles.statusBadge}>
-            <View style={[styles.statusDot, { backgroundColor: statusColor }]} />
+            {isReady ? (
+              <CheckCheckIcon size={14} color={statusColor} />
+            ) : (
+              <View style={[styles.statusDot, { backgroundColor: statusColor }]} />
+            )}
             <Text style={[styles.statusLabel, { color: statusColor }]}>
               {STATUS_LABELS[status]}
             </Text>
           </View>
-          <Text style={styles.progressPct}>
-            {isHarvested ? '—' : `${progressPct}%`}
-          </Text>
+          {!isReady && (
+            <Text style={styles.progressPct}>
+              {isHarvested ? '—' : `${progressPct}%`}
+            </Text>
+          )}
         </View>
 
-        {/* Progress bar */}
-        {!isHarvested && (
+        {/* Progress bar (hidden for ready & harvested) */}
+        {!isHarvested && !isReady && (
           <View style={styles.progressTrack}>
             <Animated.View
               style={[
                 styles.progressFill,
-                isReady && styles.progressFillReady,
                 {
                   width: progressAnim.interpolate({
                     inputRange: [0, 1],
@@ -340,7 +350,7 @@ export function FarmCard({
           </View>
         )}
 
-        {/* Countdown + notifications */}
+        {/* Main message */}
         <View style={styles.countdownRow}>
           <Text
             style={[styles.countdown, isReady && styles.countdownReady]}
@@ -348,29 +358,31 @@ export function FarmCard({
             {isHarvested
               ? 'Waiting to replant'
               : isReady
-              ? 'Ready to harvest'
+              ? 'Your next harvest is waiting'
               : formatCountdown(farm.readyAt, now)}
           </Text>
-          {farm.notificationsEnabled && (
+          {farm.notificationsEnabled && !isReady && !isHarvested && (
             <BellIcon size={14} color={colors.accentBlue} />
           )}
         </View>
 
-        {/* Harvest date */}
-        <Text style={styles.harvestDate}>
-          Harvest · {formatDateTime(farm.readyAt)}
-        </Text>
+        {/* Harvest date (hidden for ready & harvested) */}
+        {!isReady && !isHarvested && (
+          <Text style={styles.harvestDate}>
+            Harvest · {formatDateTime(farm.readyAt)}
+          </Text>
+        )}
       </Pressable>
 
       {/* Action buttons */}
       <View style={styles.actions}>
         {isReady ? (
           <>
-            <Pressable style={[styles.actionBtn, styles.actionBtnSecondary]} onPress={onSwap}>
-              <Text style={styles.actionBtnText}>Swap</Text>
+            <Pressable style={[styles.actionBtn, styles.actionBtnIcon, styles.actionBtnSecondary]} onPress={onSwap}>
+              <Repeat2Icon size={16} color={colors.mutedForeground} />
             </Pressable>
             <Pressable style={[styles.actionBtn, styles.actionBtnPrimary]} onPress={onHarvested}>
-              <Text style={styles.actionBtnPrimaryText}>Mark Harvested</Text>
+              <Text style={styles.actionBtnPrimaryText}>Harvest</Text>
             </Pressable>
           </>
         ) : isHarvested ? (

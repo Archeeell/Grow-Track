@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import {
   Image,
+  Modal,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -19,12 +20,11 @@ import { getSeedIcon, getSeedItemImage } from '../data/seedIcons';
 import { formatGrowTime } from '../utils/time';
 import { PlusIcon } from '../components/dashboard/DashboardIcons';
 import { InfoIcon } from '../components/settings/SettingsIcons';
+import { SeedFormSheet } from './SeedFormSheet';
 import type { Route } from '../types';
 
 type Props = {
   onBack: () => void;
-  onAdd: () => void;
-  onEdit: (id: string) => void;
   onNavigate: (route: Route) => void;
 };
 
@@ -171,31 +171,16 @@ const useStyles = makeStyles(({ colors }) => ({
     marginTop: 4,
     fontFamily: fonts.bodySemiBold,
   },
-  seedRight: {
-    alignItems: 'flex-end',
-    gap: 4,
-  },
-  badge: {
-    backgroundColor: withAlpha(colors.accentBlue, 0.12),
-    borderRadius: 6,
+  editBtn: {
+    minHeight: 44,
+    borderRadius: 10,
     paddingHorizontal: 8,
-    paddingVertical: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  badgeText: {
-    color: colors.accentBlue,
-    fontSize: 10,
-    fontWeight: '700',
-    fontFamily: fonts.bodyBold,
-  },
-  badgeOnetime: {
-    backgroundColor: withAlpha(colors.mutedForeground, 0.12),
-  },
-  badgeOnetimeText: {
+  editBtnText: {
     color: colors.mutedForeground,
-  },
-  editLabel: {
-    color: colors.mutedForeground,
-    fontSize: 12,
+    fontSize: 14,
     fontWeight: '600',
     fontFamily: fonts.bodySemiBold,
   },
@@ -232,12 +217,29 @@ const useStyles = makeStyles(({ colors }) => ({
   },
 }));
 
-export function SeedManagerScreen({ onBack, onAdd, onEdit, onNavigate }: Props) {
+export function SeedManagerScreen({ onBack, onNavigate }: Props) {
   const styles = useStyles();
   const { colors } = useTheme();
   const { seeds, restoreStarterSeeds } = useStore();
   const [filter, setFilter] = useState<FilterTab>('all');
   const [search, setSearch] = useState('');
+  const [sheetVisible, setSheetVisible] = useState(false);
+  const [editingSeedId, setEditingSeedId] = useState<string | undefined>();
+
+  const openAddSheet = () => {
+    setEditingSeedId(undefined);
+    setSheetVisible(true);
+  };
+
+  const openEditSheet = (seedId: string) => {
+    setEditingSeedId(seedId);
+    setSheetVisible(true);
+  };
+
+  const closeSheet = () => {
+    setSheetVisible(false);
+    setEditingSeedId(undefined);
+  };
 
   const filtered = useMemo(() => {
     let list = [...seeds];
@@ -263,7 +265,7 @@ export function SeedManagerScreen({ onBack, onAdd, onEdit, onNavigate }: Props) 
         </View>
         <Pressable
           style={styles.addBtn}
-          onPress={onAdd}
+          onPress={openAddSheet}
           accessibilityRole="button"
           accessibilityLabel="Add seed"
         >
@@ -317,10 +319,8 @@ export function SeedManagerScreen({ onBack, onAdd, onEdit, onNavigate }: Props) 
           const img = getSeedItemImage(seed.id);
           const emoji = getSeedIcon(seed.id);
           return (
-            <Pressable
+            <View
               key={seed.id}
-              accessibilityRole="button"
-              onPress={() => onEdit(seed.id)}
               style={styles.seedCard}
             >
               <View style={styles.seedIconBox}>
@@ -339,21 +339,15 @@ export function SeedManagerScreen({ onBack, onAdd, onEdit, onNavigate }: Props) 
                   <Text style={styles.reharvest}>↻ Re-harvest</Text>
                 ) : null}
               </View>
-              <View style={styles.seedRight}>
-                {seed.reharvestIntervalMinutes != null ? (
-                  <View style={styles.badge}>
-                    <Text style={styles.badgeText}>Re-harvest</Text>
-                  </View>
-                ) : (
-                  <View style={[styles.badge, styles.badgeOnetime]}>
-                    <Text style={[styles.badgeText, styles.badgeOnetimeText]}>
-                      One-time
-                    </Text>
-                  </View>
-                )}
-                <Text style={styles.editLabel}>Edit</Text>
-              </View>
-            </Pressable>
+              <Pressable
+                style={styles.editBtn}
+                onPress={() => openEditSheet(seed.id)}
+                accessibilityRole="button"
+                accessibilityLabel="Edit seed"
+              >
+                <Text style={styles.editBtnText}>Edit</Text>
+              </Pressable>
+            </View>
           );
         })}
 
@@ -383,6 +377,12 @@ export function SeedManagerScreen({ onBack, onAdd, onEdit, onNavigate }: Props) 
       </ScrollView>
 
       <TabBar active="seeds" onNavigate={onNavigate} />
+
+      <SeedFormSheet
+        visible={sheetVisible}
+        seedId={editingSeedId}
+        onClose={closeSheet}
+      />
     </SafeAreaView>
   );
 }

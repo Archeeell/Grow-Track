@@ -717,13 +717,13 @@ function AccountOverlay({
           Create an account to manage more farms. Cross-device synchronization is coming in a future update.
         </Text>
         <Pressable
-          onPress={() => { onClose(); onNavigate({ name: 'dashboard' }); }}
+          onPress={() => { onClose(); onSignOut(); }}
           style={({ pressed }) => [styles.btn, styles.btnPrimary, { marginTop: 24, width: '100%' }, pressed && styles.btnPressedStyle]}
         >
           <Text style={styles.btnPrimaryText}>Create Account</Text>
         </Pressable>
         <Pressable
-          onPress={() => { onClose(); onNavigate({ name: 'dashboard' }); }}
+          onPress={() => { onClose(); onSignOut(); }}
           style={({ pressed }) => [styles.btn, styles.btnSecondary, { marginTop: 12, width: '100%' }, pressed && styles.btnPressedStyle]}
         >
           <Text style={styles.btnSecondaryText}>Sign In</Text>
