@@ -60,6 +60,12 @@ const useStyles = makeStyles(({ colors }) => ({
     alignItems: 'center' as const,
     gap: spacing.sm,
   },
+  topRowPressable: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    flex: 1,
+    gap: spacing.sm,
+  },
   iconBox: {
     width: 48,
     height: 48,
@@ -293,19 +299,21 @@ export function FarmCard({
   return (
     <View style={[styles.card, isReady && styles.cardReady]}>
       {/* Top row: icon + name + pin */}
-      <Pressable accessibilityRole="button" onPress={onPress} style={styles.topRow}>
-        <View style={styles.iconBox}>
-          {itemImage ? (
-            <Image source={itemImage} style={styles.itemImage} resizeMode="contain" />
-          ) : (
-            <Text style={styles.iconEmoji}>{emoji}</Text>
-          )}
-        </View>
+      <View style={styles.topRow}>
+        <Pressable accessibilityRole="button" onPress={onPress} style={styles.topRowPressable}>
+          <View style={styles.iconBox}>
+            {itemImage ? (
+              <Image source={itemImage} style={styles.itemImage} resizeMode="contain" />
+            ) : (
+              <Text style={styles.iconEmoji}>{emoji}</Text>
+            )}
+          </View>
 
-        <View style={styles.nameBlock}>
-          <Text style={styles.name} numberOfLines={1}>{farm.name}</Text>
-          <Text style={styles.seedName} numberOfLines={1}>{farm.seedName}</Text>
-        </View>
+          <View style={styles.nameBlock}>
+            <Text style={styles.name} numberOfLines={1}>{farm.name}</Text>
+            <Text style={styles.seedName} numberOfLines={1}>{farm.seedName}</Text>
+          </View>
+        </Pressable>
 
         <Pressable
           onPress={onPin}
@@ -319,7 +327,7 @@ export function FarmCard({
             fill={farm.pinned ? STAR_ACTIVE_COLOR : 'none'}
           />
         </Pressable>
-      </Pressable>
+      </View>
 
       {/* ── GROWING state ───────────────────────────────────── */}
       {isGrowing && (
