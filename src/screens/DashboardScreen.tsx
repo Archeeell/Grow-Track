@@ -2,12 +2,14 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useEffect, useMemo, useState } from "react";
 import {
   FlatList,
+  Image,
   KeyboardAvoidingView,
   Modal,
   Platform,
   Pressable,
   ScrollView,
   StyleSheet,
+  Switch,
   Text,
   TextInput,
   View,
@@ -42,6 +44,7 @@ import { useTheme } from "../theme/ThemeContext";
 import { makeStyles } from "../theme/makeStyles";
 import { withAlpha } from "../theme/withAlpha";
 import type { Farm, HarvestStatus, Route, Seed } from "../types";
+import { getSeedIcon, getSeedSeedImage } from "../data/seedIcons";
 import { confirmAction } from "../utils/confirm";
 import {
   addMinutes,
@@ -723,6 +726,24 @@ const useStyles = makeStyles(({ colors }) => ({
     flex: 1,
     gap: 4,
   },
+  dhmCellCentered: {
+    flex: 1,
+    alignItems: "center" as const,
+    gap: 8,
+  },
+  dhmInput: {
+    backgroundColor: colors.muted,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    color: colors.foreground,
+    height: 56,
+    width: "100%" as const,
+    fontSize: 20,
+    fontWeight: "700" as const,
+    textAlign: "center" as const,
+    fontFamily: fonts.bodyBold,
+  },
   dhmLabel: {
     color: colors.mutedForeground,
     fontSize: 12,
@@ -791,6 +812,108 @@ const useStyles = makeStyles(({ colors }) => ({
     fontWeight: "700",
     fontSize: 15,
     fontFamily: fonts.bodyBold,
+  },
+
+  // ── Swap modal extras ─────────────────────────────────────────────────────
+  currentInfoCard: {
+    backgroundColor: colors.muted,
+    borderRadius: radius.lg,
+    padding: 12,
+  },
+  currentInfoLabel: {
+    color: colors.mutedForeground,
+    fontSize: 13,
+    fontFamily: fonts.body,
+  },
+  currentInfoStatus: {
+    color: colors.foreground,
+    fontSize: 13,
+    fontWeight: "600" as const,
+    fontFamily: fonts.bodySemiBold,
+    marginTop: 4,
+  },
+  seedSearchContainer: {
+    position: "relative" as const,
+    marginBottom: 8,
+  },
+  seedSearchInput: {
+    backgroundColor: colors.muted,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    color: colors.foreground,
+    fontSize: 14,
+    paddingHorizontal: spacing.md,
+    paddingLeft: 40,
+    height: 44,
+    fontFamily: fonts.body,
+  },
+  seedSearchIcon: {
+    position: "absolute" as const,
+    left: 12,
+    top: 13,
+    zIndex: 1,
+  },
+  seedGridScrollable: {
+    maxHeight: 160,
+  },
+  seedChip: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.card,
+    borderRadius: radius.lg,
+    paddingHorizontal: 8,
+    paddingVertical: 8,
+    minHeight: 56,
+    width: "47%" as const,
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    gap: 8,
+  },
+  seedChipOn: {
+    backgroundColor: withAlpha(colors.primary, 0.10),
+    borderColor: colors.primary,
+  },
+  seedChipIconWrap: {
+    width: 24,
+    height: 24,
+    alignItems: "center" as const,
+    justifyContent: "center" as const,
+  },
+  seedChipImg: {
+    width: 24,
+    height: 24,
+  },
+  seedChipEmoji: {
+    fontSize: 20,
+  },
+  seedChipText: {
+    color: colors.foreground,
+    fontSize: 12,
+    fontWeight: "600" as const,
+    flex: 1,
+    fontFamily: fonts.bodySemiBold,
+  },
+  notifyRow: {
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    gap: spacing.md,
+    paddingVertical: spacing.sm,
+  },
+  notifyTextBlock: {
+    flex: 1,
+  },
+  notifyTitle: {
+    color: colors.foreground,
+    fontSize: 14,
+    fontWeight: "600" as const,
+    fontFamily: fonts.bodySemiBold,
+  },
+  notifySubtitle: {
+    color: colors.mutedForeground,
+    fontSize: 12,
+    fontFamily: fonts.body,
+    marginTop: 2,
   },
 }));
 
@@ -881,6 +1004,9 @@ export function DashboardScreen({
   const [modalHours, setModalHours] = useState("");
   const [modalMinutes, setModalMinutes] = useState("");
   const [modalError, setModalError] = useState<string | null>(null);
+  const [modalSeedId, setModalSeedId] = useState<string | null>(null);
+  const [modalNotify, setModalNotify] = useState(false);
+  const [modalSeedSearch, setModalSeedSearch] = useState("");
 
   const sorted = useMemo(() => {
     let list = [...farms];
@@ -1023,11 +1149,14 @@ export function DashboardScreen({
       : undefined;
     const defaultMinutes = seed?.growTimeMinutes ?? 0;
     const dhm = minutesToDHM(defaultMinutes);
-    setModalName("");
+    setModalName(farm.name);
     setModalDays(dhm.days > 0 ? String(dhm.days) : "");
     setModalHours(dhm.hours > 0 ? String(dhm.hours) : "");
     setModalMinutes(dhm.minutes > 0 ? String(dhm.minutes) : "");
     setModalError(null);
+    setModalSeedId(farm.seedId);
+    setModalNotify(farm.notificationsEnabled);
+    setModalSeedSearch("");
     setModal({ type: "swap", farm, seed });
   };
 
@@ -1072,7 +1201,7 @@ export function DashboardScreen({
     }
     closeModal();
     if (modal.type === "swap") {
-      await swapFarm(modal.farm.id, trimmedName, totalModalMinutes);
+      await swapFarm(modal.farm.id, trimmedName, totalModalMinutes, modalSeedId ?? undefined, modalNotify);
     } else {
       await replantFarm(modal.farm.id, trimmedName, totalModalMinutes);
     }
@@ -1676,128 +1805,289 @@ export function DashboardScreen({
           behavior={Platform.OS === "ios" ? "padding" : "height"}
         >
           <Pressable style={StyleSheet.absoluteFill} onPress={closeModal} />
-          <View style={styles.sheet}>
-            {/* Drag handle */}
-            <View style={styles.handle} />
-            {modal && (
-              <>
-                <View style={styles.sheetHeader}>
-                  <Text style={styles.sheetTitle}>
-                    {modal.type === "swap" ? "Swap Farm" : "Replant Farm"}
-                  </Text>
-                  <Pressable onPress={closeModal} style={styles.closeBtn} accessibilityLabel="Close dialog">
-                    <XIcon size={20} color={colors.mutedForeground} />
-                  </Pressable>
-                </View>
+          <Pressable onPress={(e) => e.stopPropagation()}>
+            <View style={styles.sheet}>
+              {/* Drag handle */}
+              <View style={styles.handle} />
+              {modal && (
+                <>
+                  <View style={styles.sheetHeader}>
+                    <Text style={styles.sheetTitle}>
+                      {modal.type === "swap" ? "Swap Farm" : "Replant Farm"}
+                    </Text>
+                    <Pressable onPress={closeModal} style={styles.closeBtn} accessibilityLabel="Close dialog">
+                      <XIcon size={20} color={colors.mutedForeground} />
+                    </Pressable>
+                  </View>
 
-                {/* Seed type */}
-                <View style={styles.seedPill}>
-                  <Text style={styles.seedPillLabel}>Seed type</Text>
-                  <Text style={styles.seedPillValue}>
-                    {modal.seed?.name ?? "Custom / manual"}
-                  </Text>
-                </View>
+                  {modal.type === "swap" ? (
+                    <ScrollView
+                      showsVerticalScrollIndicator={false}
+                      keyboardShouldPersistTaps="handled"
+                    >
+                      {/* Current seed info card */}
+                      <View style={[styles.currentInfoCard, { marginBottom: spacing.sm }]}>
+                        <Text style={styles.currentInfoLabel}>
+                          Current · {modal.farm.seedName || "Unknown"}
+                        </Text>
+                        <Text style={styles.currentInfoStatus}>
+                          Ready to harvest
+                        </Text>
+                      </View>
 
-                {modal.type === "swap" ? (
-                  <Text style={styles.sheetHint}>
-                    Enter the name of the new farm. The seed type stays the
-                    same.
-                  </Text>
-                ) : (
-                  <Text style={styles.sheetHint}>
-                    Confirm the farm name and adjust the grow time if needed.
-                  </Text>
-                )}
-
-                {/* Farm name */}
-                <Text style={styles.fieldLabel}>Farm name</Text>
-                <TextInput
-                  style={styles.input}
-                  value={modalName}
-                  onChangeText={(v) => {
-                    setModalName(v);
-                    setModalError(null);
-                  }}
-                  placeholder={
-                    modal.type === "swap"
-                      ? "World ABCXYZ — Lower Left"
-                      : modal.farm.name
-                  }
-                  placeholderTextColor={colors.mutedForeground}
-                />
-
-                {/* Grow duration */}
-                <Text style={styles.fieldLabel}>Grow duration</Text>
-                <View style={styles.dhmRow}>
-                  {[
-                    { label: "Days", value: modalDays, set: setModalDays },
-                    { label: "Hours", value: modalHours, set: setModalHours },
-                    {
-                      label: "Minutes",
-                      value: modalMinutes,
-                      set: setModalMinutes,
-                    },
-                  ].map(({ label, value, set }) => (
-                    <View key={label} style={styles.dhmCell}>
-                      <Text style={styles.dhmLabel}>{label}</Text>
+                      {/* World name */}
+                      <Text style={[styles.fieldLabel, { marginBottom: 4 }]}>World name</Text>
                       <TextInput
-                        style={styles.input}
-                        value={value}
+                        style={[styles.input, { marginBottom: spacing.sm }]}
+                        value={modalName}
                         onChangeText={(v) => {
-                          set(v);
+                          setModalName(v.toUpperCase());
                           setModalError(null);
                         }}
-                        keyboardType="numeric"
-                        placeholder="0"
+                        placeholder="e.g. ARCHELLGT"
+                        placeholderTextColor={colors.mutedForeground}
+                        autoCapitalize="characters"
+                      />
+
+                      {/* Seed selector */}
+                      <Text style={[styles.fieldLabel, { marginBottom: 8 }]}>Seed</Text>
+                      <View style={styles.seedSearchContainer}>
+                        <View style={styles.seedSearchIcon}>
+                          <SearchIcon size={15} color={colors.mutedForeground} />
+                        </View>
+                        <TextInput
+                          style={styles.seedSearchInput}
+                          value={modalSeedSearch}
+                          onChangeText={setModalSeedSearch}
+                          placeholder="Find a seed"
+                          placeholderTextColor={colors.mutedForeground}
+                        />
+                      </View>
+                      <ScrollView
+                        style={[styles.seedGridScrollable, { marginBottom: spacing.sm }]}
+                        nestedScrollEnabled
+                        showsVerticalScrollIndicator={false}
+                      >
+                        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+                          {seeds
+                            .filter((s) =>
+                              !modalSeedSearch.trim() ||
+                              s.name.toLowerCase().includes(modalSeedSearch.toLowerCase())
+                            )
+                            .map((s) => {
+                              const isSelected = modalSeedId === s.id;
+                              const img = getSeedSeedImage(s.id);
+                              const emoji = getSeedIcon(s.id);
+                              return (
+                                <Pressable
+                                  key={s.id}
+                                  accessibilityRole="button"
+                                  style={[
+                                    styles.seedChip,
+                                    isSelected && styles.seedChipOn,
+                                  ]}
+                                  onPress={() => {
+                                    setModalSeedId(s.id);
+                                    const seed = seeds.find((x) => x.id === s.id);
+                                    if (seed) {
+                                      const dhm = minutesToDHM(seed.growTimeMinutes);
+                                      setModalDays(dhm.days > 0 ? String(dhm.days) : "");
+                                      setModalHours(dhm.hours > 0 ? String(dhm.hours) : "");
+                                      setModalMinutes(dhm.minutes > 0 ? String(dhm.minutes) : "");
+                                    }
+                                  }}
+                                >
+                                  <View style={styles.seedChipIconWrap}>
+                                    {img ? (
+                                      <Image source={img} style={styles.seedChipImg} resizeMode="contain" />
+                                    ) : (
+                                      <Text style={styles.seedChipEmoji}>{emoji}</Text>
+                                    )}
+                                  </View>
+                                  <Text style={styles.seedChipText} numberOfLines={2}>{s.name}</Text>
+                                  {isSelected && (
+                                    <CheckIcon size={13} color={colors.primary} />
+                                  )}
+                                </Pressable>
+                              );
+                            })}
+                        </View>
+                      </ScrollView>
+
+                      {/* Grow duration */}
+                      <Text style={[styles.fieldLabel, { marginBottom: 8 }]}>Grow duration</Text>
+                      <View style={[styles.dhmRow, { marginBottom: spacing.sm }]}>
+                        {[
+                          { label: "Days", value: modalDays, set: setModalDays },
+                          { label: "Hours", value: modalHours, set: setModalHours },
+                          { label: "Minutes", value: modalMinutes, set: setModalMinutes },
+                        ].map(({ label, value, set }) => (
+                          <View key={label} style={styles.dhmCellCentered}>
+                            <TextInput
+                              style={styles.dhmInput}
+                              value={value}
+                              onChangeText={(v) => {
+                                set(v);
+                                setModalError(null);
+                              }}
+                              keyboardType="numeric"
+                              placeholder="0"
+                              placeholderTextColor={colors.mutedForeground}
+                              textAlign="center"
+                            />
+                            <Text style={styles.dhmLabel}>{label}</Text>
+                          </View>
+                        ))}
+                      </View>
+
+                      {/* Harvest notification toggle */}
+                      <View style={[styles.notifyRow, { marginBottom: spacing.sm }]}>
+                        <View style={styles.notifyTextBlock}>
+                          <Text style={styles.notifyTitle}>Harvest notification</Text>
+                          <Text style={styles.notifySubtitle}>
+                            Get notified when this farm is ready.
+                          </Text>
+                        </View>
+                        <Switch
+                          value={modalNotify}
+                          onValueChange={setModalNotify}
+                          trackColor={{ false: colors.border, true: colors.primary }}
+                          thumbColor="#ffffff"
+                        />
+                      </View>
+
+                      {/* Estimated harvest preview */}
+                      {modalPreviewReady ? (
+                        <View style={[styles.previewCard, { marginBottom: spacing.sm }]}>
+                          <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                            <Clock3Icon size={12} color={colors.accentBlue} />
+                            <Text style={styles.previewLabel}>ESTIMATED HARVEST</Text>
+                          </View>
+                          <Text style={styles.previewTime}>
+                            {new Date(modalPreviewReady).toLocaleString(undefined, {
+                              month: "short",
+                              day: "numeric",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
+                          </Text>
+                          {modalSeedId && (
+                            <Text style={styles.previewSeed}>
+                              {seeds.find((s) => s.id === modalSeedId)?.name ?? modal.farm.seedName}
+                            </Text>
+                          )}
+                        </View>
+                      ) : null}
+
+                      {modalError ? (
+                        <Text style={[styles.modalError, { marginBottom: 4 }]}>{modalError}</Text>
+                      ) : null}
+
+                      {/* Full-width Swap button */}
+                      <Pressable
+                        style={[styles.sheetBtn, styles.sheetBtnPrimary, { width: "100%" }]}
+                        onPress={() => void confirmModal()}
+                      >
+                        <Text style={styles.sheetBtnPrimaryText}>Swap</Text>
+                      </Pressable>
+                    </ScrollView>
+                  ) : (
+                    /* ── Replant mode (unchanged) ── */
+                    <>
+                      {/* Seed type */}
+                      <View style={styles.seedPill}>
+                        <Text style={styles.seedPillLabel}>Seed type</Text>
+                        <Text style={styles.seedPillValue}>
+                          {modal.seed?.name ?? "Custom / manual"}
+                        </Text>
+                      </View>
+
+                      <Text style={styles.sheetHint}>
+                        Confirm the farm name and adjust the grow time if needed.
+                      </Text>
+
+                      {/* Farm name */}
+                      <Text style={styles.fieldLabel}>Farm name</Text>
+                      <TextInput
+                        style={styles.input}
+                        value={modalName}
+                        onChangeText={(v) => {
+                          setModalName(v);
+                          setModalError(null);
+                        }}
+                        placeholder={modal.farm.name}
                         placeholderTextColor={colors.mutedForeground}
                       />
-                    </View>
-                  ))}
-                </View>
 
-                {modalPreviewReady ? (
-                  <View style={styles.previewCard}>
-                    <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-                      <Clock3Icon size={12} color={colors.accentBlue} />
-                      <Text style={styles.previewLabel}>ESTIMATED HARVEST</Text>
-                    </View>
-                    <Text style={styles.previewTime}>
-                      {new Date(modalPreviewReady).toLocaleString(undefined, {
-                        month: "short",
-                        day: "numeric",
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
-                    </Text>
-                    {modal.seed && (
-                      <Text style={styles.previewSeed}>{modal.seed.name}</Text>
-                    )}
-                  </View>
-                ) : null}
+                      {/* Grow duration */}
+                      <Text style={styles.fieldLabel}>Grow duration</Text>
+                      <View style={styles.dhmRow}>
+                        {[
+                          { label: "Days", value: modalDays, set: setModalDays },
+                          { label: "Hours", value: modalHours, set: setModalHours },
+                          { label: "Minutes", value: modalMinutes, set: setModalMinutes },
+                        ].map(({ label, value, set }) => (
+                          <View key={label} style={styles.dhmCell}>
+                            <Text style={styles.dhmLabel}>{label}</Text>
+                            <TextInput
+                              style={styles.input}
+                              value={value}
+                              onChangeText={(v) => {
+                                set(v);
+                                setModalError(null);
+                              }}
+                              keyboardType="numeric"
+                              placeholder="0"
+                              placeholderTextColor={colors.mutedForeground}
+                            />
+                          </View>
+                        ))}
+                      </View>
 
-                {modalError ? (
-                  <Text style={styles.modalError}>{modalError}</Text>
-                ) : null}
+                      {modalPreviewReady ? (
+                        <View style={styles.previewCard}>
+                          <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                            <Clock3Icon size={12} color={colors.accentBlue} />
+                            <Text style={styles.previewLabel}>ESTIMATED HARVEST</Text>
+                          </View>
+                          <Text style={styles.previewTime}>
+                            {new Date(modalPreviewReady).toLocaleString(undefined, {
+                              month: "short",
+                              day: "numeric",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
+                          </Text>
+                          {modal.seed && (
+                            <Text style={styles.previewSeed}>{modal.seed.name}</Text>
+                          )}
+                        </View>
+                      ) : null}
 
-                <View style={styles.sheetActions}>
-                  <Pressable
-                    style={[styles.sheetBtn, styles.sheetBtnSecondary]}
-                    onPress={closeModal}
-                  >
-                    <Text style={styles.sheetBtnSecondaryText}>Cancel</Text>
-                  </Pressable>
-                  <Pressable
-                    style={[styles.sheetBtn, styles.sheetBtnPrimary]}
-                    onPress={() => void confirmModal()}
-                  >
-                    <Text style={styles.sheetBtnPrimaryText}>
-                      {modal.type === "swap" ? "Swap" : "Replant"}
-                    </Text>
-                  </Pressable>
-                </View>
-              </>
-            )}
-          </View>
+                      {modalError ? (
+                        <Text style={styles.modalError}>{modalError}</Text>
+                      ) : null}
+
+                      <View style={styles.sheetActions}>
+                        <Pressable
+                          style={[styles.sheetBtn, styles.sheetBtnSecondary]}
+                          onPress={closeModal}
+                        >
+                          <Text style={styles.sheetBtnSecondaryText}>Cancel</Text>
+                        </Pressable>
+                        <Pressable
+                          style={[styles.sheetBtn, styles.sheetBtnPrimary]}
+                          onPress={() => void confirmModal()}
+                        >
+                          <Text style={styles.sheetBtnPrimaryText}>Replant</Text>
+                        </Pressable>
+                      </View>
+                    </>
+                  )}
+                </>
+              )}
+            </View>
+          </Pressable>
         </KeyboardAvoidingView>
       </Modal>
     </SafeAreaView>
