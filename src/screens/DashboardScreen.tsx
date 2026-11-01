@@ -497,7 +497,7 @@ const useStyles = makeStyles(({ colors }) => ({
   sectionHeaderRow: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
+    gap: 6,
   },
   sectionHeaderLeft: {
     flexDirection: "row",
@@ -1251,14 +1251,12 @@ export function DashboardScreen({
       return (
         <View style={styles.sectionHeader}>
           <View style={styles.sectionHeaderRow}>
-            <View style={styles.sectionHeaderLeft}>
-              {sectionIcon}
-              <Text
-                style={[styles.sectionLabel, { color: statusColors[item.status] }]}
-              >
-                {SECTION_LABELS[item.status]}
-              </Text>
-            </View>
+            {sectionIcon}
+            <Text
+              style={[styles.sectionLabel, { color: statusColors[item.status] }]}
+            >
+              {SECTION_LABELS[item.status]}
+            </Text>
             <Text style={styles.sectionCount}>· {item.count}</Text>
           </View>
           {subtext && (
