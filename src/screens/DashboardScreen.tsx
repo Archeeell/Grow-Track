@@ -108,9 +108,13 @@ function padStat(n: number): string {
 }
 
 const SECTION_LABELS: Record<HarvestStatus, string> = {
-  ready: "READY",
+  ready: "READY TO HARVEST",
   growing: "GROWING",
   harvested: "HARVESTED",
+};
+
+const SECTION_SUBTEXTS: Partial<Record<HarvestStatus, string>> = {
+  ready: "Let's collect.",
 };
 
 type ListItem =
@@ -487,11 +491,18 @@ const useStyles = makeStyles(({ colors }) => ({
 
   // ── Section headers ────────────────────────────────────────────────────
   sectionHeader: {
+    marginBottom: spacing.sm,
+    marginTop: 4,
+  },
+  sectionHeaderRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    marginBottom: spacing.sm,
-    marginTop: 4,
+  },
+  sectionHeaderLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
   },
   sectionLabel: {
     fontSize: 10,
@@ -505,6 +516,12 @@ const useStyles = makeStyles(({ colors }) => ({
     fontWeight: "600",
     fontFamily: fonts.bodySemiBold,
     opacity: 0.6,
+  },
+  sectionSubtext: {
+    fontSize: 10,
+    color: colors.mutedForeground,
+    fontFamily: fonts.body,
+    marginTop: 2,
   },
 
   // ── Farm List ────────────────────────────────────────────────────────────
@@ -1222,26 +1239,43 @@ export function DashboardScreen({
 
   const renderItem = ({ item }: { item: ListItem }) => {
     if (item.type === "section") {
+      const subtext = SECTION_SUBTEXTS[item.status];
+      const sectionIcon =
+        item.status === "ready" ? (
+          <CheckCheckIcon size={14} color={statusColors[item.status]} />
+        ) : item.status === "growing" ? (
+          <SproutIcon size={14} color={statusColors[item.status]} />
+        ) : (
+          <CheckIcon size={14} color={statusColors[item.status]} />
+        );
       return (
         <View style={styles.sectionHeader}>
-          <Text
-            style={[styles.sectionLabel, { color: statusColors[item.status] }]}
-          >
-            {SECTION_LABELS[item.status]}
-          </Text>
-          <Text style={styles.sectionCount}>· {item.count}</Text>
+          <View style={styles.sectionHeaderRow}>
+            {sectionIcon}
+            <Text
+              style={[styles.sectionLabel, { color: statusColors[item.status] }]}
+            >
+              {SECTION_LABELS[item.status]}
+            </Text>
+            <Text style={styles.sectionCount}>· {item.count}</Text>
+          </View>
+          {subtext && (
+            <Text style={styles.sectionSubtext}>{subtext}</Text>
+          )}
         </View>
       );
     }
     if (item.type === "header") {
       return (
         <View style={styles.sectionHeader}>
-          <Text
-            style={[styles.sectionLabel, { color: colors.mutedForeground }]}
-          >
-            {item.title}
-          </Text>
-          <Text style={styles.sectionCount}>· {item.count}</Text>
+          <View style={styles.sectionHeaderRow}>
+            <Text
+              style={[styles.sectionLabel, { color: colors.mutedForeground }]}
+            >
+              {item.title}
+            </Text>
+            <Text style={styles.sectionCount}>· {item.count}</Text>
+          </View>
         </View>
       );
     }
