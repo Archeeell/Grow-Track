@@ -497,7 +497,7 @@ const useStyles = makeStyles(({ colors }) => ({
   sectionHeaderRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
+    justifyContent: "space-between",
   },
   sectionHeaderLeft: {
     flexDirection: "row",
@@ -512,7 +512,6 @@ const useStyles = makeStyles(({ colors }) => ({
   },
   sectionCount: {
     fontSize: 10,
-    color: colors.mutedForeground,
     fontWeight: "600",
     fontFamily: fonts.bodySemiBold,
     opacity: 0.6,
@@ -521,7 +520,6 @@ const useStyles = makeStyles(({ colors }) => ({
     fontSize: 10,
     color: colors.mutedForeground,
     fontFamily: fonts.body,
-    marginTop: 2,
   },
 
   // ── Farm List ────────────────────────────────────────────────────────────
@@ -1251,17 +1249,19 @@ export function DashboardScreen({
       return (
         <View style={styles.sectionHeader}>
           <View style={styles.sectionHeaderRow}>
-            {sectionIcon}
-            <Text
-              style={[styles.sectionLabel, { color: statusColors[item.status] }]}
-            >
-              {SECTION_LABELS[item.status]}
-            </Text>
-            <Text style={styles.sectionCount}>· {item.count}</Text>
+            <View style={styles.sectionHeaderLeft}>
+              {sectionIcon}
+              <Text
+                style={[styles.sectionLabel, { color: statusColors[item.status] }]}
+              >
+                {SECTION_LABELS[item.status]}
+              </Text>
+              <Text style={[styles.sectionCount, { color: statusColors[item.status] }]}>· {item.count}</Text>
+            </View>
+            {subtext && (
+              <Text style={styles.sectionSubtext}>{subtext}</Text>
+            )}
           </View>
-          {subtext && (
-            <Text style={styles.sectionSubtext}>{subtext}</Text>
-          )}
         </View>
       );
     }
