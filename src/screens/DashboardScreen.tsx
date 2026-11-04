@@ -464,6 +464,8 @@ const useStyles = makeStyles(({ colors }) => ({
     paddingHorizontal: 12,
     backgroundColor: colors.primary,
     borderRadius: 10,
+    flexDirection: "row",
+    gap: 6,
   },
   addBtnText: {
     color: colors.primaryForeground,
@@ -491,7 +493,7 @@ const useStyles = makeStyles(({ colors }) => ({
 
   // ── Section headers ────────────────────────────────────────────────────
   sectionHeader: {
-    marginBottom: spacing.sm,
+    marginBottom: 1,
     marginTop: 4,
   },
   sectionHeaderRow: {
