@@ -435,8 +435,8 @@ const useStyles = makeStyles(({ colors }) => ({
     gap: 2,
   },
   viewToggleBtn: {
-    width: 36,
-    height: 36,
+    width: 44,
+    height: 44,
     borderRadius: 6,
     alignItems: "center",
     justifyContent: "center",
