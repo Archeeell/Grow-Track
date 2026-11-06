@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from 'react';
 import {
   Alert,
   Image,
+  KeyboardAvoidingView,
+  Modal,
   Platform,
   Pressable,
   ScrollView,
@@ -11,7 +13,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useStore } from '../store';
 import { fonts, radius, spacing } from '../theme';
 import { useTheme } from '../theme/ThemeContext';
@@ -31,44 +33,68 @@ import { CheckIcon, SearchIcon } from '../components/dashboard/DashboardIcons';
 import { Clock3Icon, XIcon } from '../components/settings/SettingsIcons';
 
 type Props = {
+  visible: boolean;
   farmId?: string;
+  mode?: 'add' | 'edit' | 'swap' | 'replant';
   onBack: () => void;
 };
 
 const useStyles = makeStyles(({ colors }) => ({
-  safe: {
+  // ── Modal overlay + sheet ──────────────────────────────────────────────
+  overlay: {
     flex: 1,
-    backgroundColor: colors.bg,
+    backgroundColor: 'rgba(0,0,0,0.65)',
+    justifyContent: 'flex-end',
   },
+  sheet: {
+    width: '100%',
+    backgroundColor: colors.bg,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    borderTopWidth: 1,
+    borderLeftWidth: 1,
+    borderRightWidth: 1,
+    borderBottomWidth: 0,
+    borderColor: colors.border,
+    maxHeight: '90%',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 20,
+  },
+
+  // ── Handle bar ─────────────────────────────────────────────────────────
+  handle: {
+    width: 36,
+    height: 4,
+    backgroundColor: withAlpha(colors.mutedForeground, 0.40),
+    borderRadius: 2,
+    alignSelf: 'center',
+    marginTop: 12,
+    marginBottom: 20,
+  },
+
+  // ── Header ─────────────────────────────────────────────────────────────
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    justifyContent: 'space-between',
+    paddingHorizontal: spacing.lg,
+    marginBottom: 20,
+  },
+  title: {
+    color: colors.foreground,
+    fontSize: 27,
+    fontWeight: '600',
+    fontFamily: fonts.pixel,
   },
   closeBtn: {
     width: 44,
     height: 44,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  closeBtnText: {
-    color: colors.mutedForeground,
-    fontSize: 20,
-    fontWeight: '700',
-  },
-  title: {
-    flex: 1,
-    textAlign: 'center',
-    color: colors.foreground,
-    fontSize: 27,
-    fontWeight: '600',
-    fontFamily: fonts.pixel,
-  },
-  headerSpacer: {
-    width: 44,
+    flexShrink: 0,
   },
   scroll: {
     padding: spacing.md,
@@ -106,6 +132,12 @@ const useStyles = makeStyles(({ colors }) => ({
   seedSearchWrap: {
     marginBottom: 8,
     position: 'relative',
+    justifyContent: 'center',
+  },
+  seedSearchIcon: {
+    position: 'absolute',
+    left: 14,
+    zIndex: 1,
   },
   seedSearchInput: {
     backgroundColor: colors.muted,
@@ -196,6 +228,7 @@ const useStyles = makeStyles(({ colors }) => ({
     fontWeight: '700',
     textAlign: 'center',
     fontFamily: fonts.bodyBold,
+    includeFontPadding: false,
   },
   dhmLabel: {
     color: colors.mutedForeground,
@@ -286,11 +319,21 @@ const useStyles = makeStyles(({ colors }) => ({
   },
 }));
 
-export function FarmFormScreen({ farmId, onBack }: Props) {
+function useSafeInsets() {
+  try {
+    return useSafeAreaInsets();
+  } catch {
+    return { top: 0, bottom: 0, left: 0, right: 0 };
+  }
+}
+
+export function FarmFormScreen({ visible, farmId, mode, onBack }: Props) {
   const styles = useStyles();
   const { colors } = useTheme();
-  const { farms, seeds, addFarm, updateFarm, deleteFarm } = useStore();
+  const insets = useSafeInsets();
+  const { farms, seeds, addFarm, updateFarm, deleteFarm, replantFarm, swapFarm } = useStore();
   const existing = farmId ? farms.find((f) => f.id === farmId) : undefined;
+  const currentMode = mode ?? (existing ? 'edit' : 'add');
 
   const [name, setName] = useState(existing?.name ?? '');
   const [seedId, setSeedId] = useState<string | null>(
@@ -301,9 +344,30 @@ export function FarmFormScreen({ farmId, onBack }: Props) {
   const [seedSearch, setSeedSearch] = useState('');
 
   // Grow duration remaining — days / hours / minutes
-  const [remainDays, setRemainDays] = useState('');
-  const [remainHours, setRemainHours] = useState('');
-  const [remainMinutes, setRemainMinutes] = useState('');
+  const [remainDays, setRemainDays] = useState(() => {
+    if (existing) {
+      const seed = existing.seedId ? seeds.find((s) => s.id === existing.seedId) : undefined;
+      const dhm = minutesToDHM(seed?.growTimeMinutes ?? 3600);
+      return dhm.days > 0 ? String(dhm.days) : '';
+    }
+    return '';
+  });
+  const [remainHours, setRemainHours] = useState(() => {
+    if (existing) {
+      const seed = existing.seedId ? seeds.find((s) => s.id === existing.seedId) : undefined;
+      const dhm = minutesToDHM(seed?.growTimeMinutes ?? 3600);
+      return dhm.hours > 0 ? String(dhm.hours) : '';
+    }
+    return '';
+  });
+  const [remainMinutes, setRemainMinutes] = useState(() => {
+    if (existing) {
+      const seed = existing.seedId ? seeds.find((s) => s.id === existing.seedId) : undefined;
+      const dhm = minutesToDHM(seed?.growTimeMinutes ?? 3600);
+      return dhm.minutes > 0 ? String(dhm.minutes) : '';
+    }
+    return '';
+  });
   const [durationTouched, setDurationTouched] = useState(false);
 
   const selectedSeed = useMemo(
@@ -312,28 +376,58 @@ export function FarmFormScreen({ farmId, onBack }: Props) {
   );
 
   useEffect(() => {
+    if (visible) {
+      if (existing) {
+        setName(existing.name);
+        setSeedId(existing.seedId ?? seeds[0]?.id ?? null);
+        setNotify(existing.notificationsEnabled);
+        setSeedSearch('');
+        setError(null);
+        setDurationTouched(false);
+        const seed = existing.seedId ? seeds.find((s) => s.id === existing.seedId) : undefined;
+        if (currentMode === 'replant' || currentMode === 'swap') {
+          const defaultMins = seed?.growTimeMinutes ?? 3600;
+          const dhm = minutesToDHM(defaultMins);
+          setRemainDays(dhm.days > 0 ? String(dhm.days) : '');
+          setRemainHours(dhm.hours > 0 ? String(dhm.hours) : '');
+          setRemainMinutes(dhm.minutes > 0 ? String(dhm.minutes) : '');
+        } else {
+          const remainMs = new Date(existing.readyAt).getTime() - Date.now();
+          if (remainMs > 0) {
+            const dhm = minutesToDHM(Math.round(remainMs / 60_000));
+            setRemainDays(dhm.days > 0 ? String(dhm.days) : '');
+            setRemainHours(dhm.hours > 0 ? String(dhm.hours) : '');
+            setRemainMinutes(dhm.minutes > 0 ? String(dhm.minutes) : '');
+          } else {
+            setRemainDays('');
+            setRemainHours('');
+            setRemainMinutes('');
+          }
+        }
+      } else {
+        setName('');
+        setSeedId(seeds[0]?.id ?? null);
+        setNotify(true);
+        setSeedSearch('');
+        setError(null);
+        setDurationTouched(false);
+        if (seeds[0]) {
+          const dhm = minutesToDHM(seeds[0].growTimeMinutes);
+          setRemainDays(dhm.days > 0 ? String(dhm.days) : '');
+          setRemainHours(dhm.hours > 0 ? String(dhm.hours) : '');
+          setRemainMinutes(dhm.minutes > 0 ? String(dhm.minutes) : '');
+        }
+      }
+    }
+  }, [visible, farmId, existing, currentMode]);
+
+  useEffect(() => {
     if (durationTouched) return;
     if (selectedSeed) {
       const dhm = minutesToDHM(selectedSeed.growTimeMinutes);
       setRemainDays(dhm.days > 0 ? String(dhm.days) : '');
       setRemainHours(dhm.hours > 0 ? String(dhm.hours) : '');
       setRemainMinutes(dhm.minutes > 0 ? String(dhm.minutes) : '');
-    } else if (existing) {
-      const remainMs = new Date(existing.readyAt).getTime() - Date.now();
-      if (remainMs > 0) {
-        const dhm = minutesToDHM(Math.round(remainMs / 60_000));
-        setRemainDays(dhm.days > 0 ? String(dhm.days) : '');
-        setRemainHours(dhm.hours > 0 ? String(dhm.hours) : '');
-        setRemainMinutes(dhm.minutes > 0 ? String(dhm.minutes) : '');
-      } else {
-        setRemainDays('');
-        setRemainHours('');
-        setRemainMinutes('');
-      }
-    } else {
-      setRemainDays('');
-      setRemainHours('');
-      setRemainMinutes('');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedSeed]);
@@ -413,7 +507,23 @@ export function FarmFormScreen({ farmId, onBack }: Props) {
       notificationsEnabled,
     };
 
-    if (existing) {
+    if (currentMode === 'replant' && existing) {
+      await replantFarm(
+        existing.id,
+        trimmed,
+        totalRemainMinutes,
+        selectedSeed?.id,
+        notificationsEnabled
+      );
+    } else if (currentMode === 'swap' && existing) {
+      await swapFarm(
+        existing.id,
+        trimmed,
+        totalRemainMinutes,
+        selectedSeed?.id,
+        notificationsEnabled
+      );
+    } else if (existing) {
       await updateFarm(existing.id, {
         ...payload,
         harvestedAt: existing.harvestedAt,
@@ -448,20 +558,48 @@ export function FarmFormScreen({ farmId, onBack }: Props) {
   }, [seeds, seedSearch]);
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Pressable onPress={onBack} style={styles.closeBtn} accessibilityRole="button" accessibilityLabel="Close">
-          <XIcon size={20} color={colors.mutedForeground} />
-        </Pressable>
-        <Text style={styles.title}>{existing ? 'Edit Farm' : 'Add Farm'}</Text>
-        <View style={styles.headerSpacer} />
-      </View>
-
-      <ScrollView
-        contentContainerStyle={styles.scroll}
-        keyboardShouldPersistTaps="handled"
+    <Modal
+      visible={visible}
+      transparent
+      animationType="slide"
+      onRequestClose={onBack}
+      statusBarTranslucent
+    >
+      <KeyboardAvoidingView
+        style={styles.overlay}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
+        {/* Backdrop */}
+        <Pressable style={StyleSheet.absoluteFill} onPress={onBack} />
+        {/* Sheet */}
+        <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation()}>
+          {/* Handle bar */}
+          <View style={styles.handle} />
+
+            {/* Header */}
+            <View style={styles.header}>
+              <Text style={styles.title}>
+                {currentMode === 'replant'
+                  ? 'Replant Farm'
+                  : currentMode === 'swap'
+                    ? 'Swap Farm'
+                    : existing
+                      ? 'Edit Farm'
+                      : 'Add Farm'}
+              </Text>
+              <Pressable onPress={onBack} style={styles.closeBtn} accessibilityRole="button" accessibilityLabel="Close">
+                <XIcon size={20} color={colors.mutedForeground} />
+              </Pressable>
+            </View>
+
+            <ScrollView
+              contentContainerStyle={[
+                styles.scroll,
+                { paddingBottom: Math.max(insets.bottom, 24) + 20 },
+              ]}
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
+            >
         {/* Farm name */}
         <View style={styles.fieldWrap}>
           <Text style={styles.fieldLabel}>World name</Text>
@@ -480,6 +618,9 @@ export function FarmFormScreen({ farmId, onBack }: Props) {
         {/* Seed selector */}
         <Text style={styles.sectionLabel}>Seed</Text>
         <View style={styles.seedSearchWrap}>
+          <View style={styles.seedSearchIcon}>
+            <SearchIcon size={15} color={colors.mutedForeground} />
+          </View>
           <TextInput
             style={styles.seedSearchInput}
             placeholder="Find a seed"
@@ -519,7 +660,7 @@ export function FarmFormScreen({ farmId, onBack }: Props) {
           {[
             { label: 'Days', value: remainDays, set: handleDayChange },
             { label: 'Hours', value: remainHours, set: handleHourChange },
-            { label: 'Mins', value: remainMinutes, set: handleMinuteChange },
+            { label: 'Minutes', value: remainMinutes, set: handleMinuteChange },
           ].map(({ label, value, set }) => (
             <View key={label} style={styles.dhmCell}>
               <TextInput
@@ -574,17 +715,25 @@ export function FarmFormScreen({ farmId, onBack }: Props) {
           accessibilityRole="button"
         >
           <Text style={styles.saveBtnText}>
-            {existing ? 'Save changes' : 'Add Farm'}
+            {currentMode === 'replant'
+              ? 'Replant'
+              : currentMode === 'swap'
+                ? 'Swap'
+                : existing
+                  ? 'Save changes'
+                  : 'Add Farm'}
           </Text>
         </Pressable>
 
-        {existing ? (
+        {existing && currentMode === 'edit' ? (
           <Pressable style={styles.deleteBtn} onPress={remove} accessibilityRole="button">
             <Text style={styles.deleteBtnText}>Delete farm</Text>
           </Pressable>
         ) : null}
       </ScrollView>
-    </SafeAreaView>
+    </Pressable>
+  </KeyboardAvoidingView>
+</Modal>
   );
 }
 

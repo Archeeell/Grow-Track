@@ -19,7 +19,8 @@ type Props = {
   farm: Farm;
   status: HarvestStatus;
   now: number;
-  onPress: () => void;
+  /** Opens the Farm Details bottom sheet */
+  onDetail: () => void;
   onPin?: () => void;
 };
 
@@ -152,7 +153,7 @@ const useStyles = makeStyles(({ colors }) => ({
   },
 }));
 
-export function GridFarmCard({ farm, status, now, onPress, onPin }: Props) {
+export function GridFarmCard({ farm, status, now, onDetail, onPin }: Props) {
   const styles = useStyles();
   const { colors } = useTheme();
 
@@ -173,7 +174,7 @@ export function GridFarmCard({ farm, status, now, onPress, onPin }: Props) {
         isReady && styles.cardReady,
         pressed && { opacity: 0.9 },
       ]}
-      onPress={onPress}
+      onPress={onDetail}
       accessibilityRole="button"
       accessibilityLabel={`${farm.name || 'Farm'}, ${status}. Open farm details`}
     >
@@ -191,7 +192,10 @@ export function GridFarmCard({ farm, status, now, onPress, onPin }: Props) {
             )}
           </View>
           <Pressable
-            onPress={onPin}
+            onPress={(e) => {
+              e.stopPropagation?.();
+              onPin?.();
+            }}
             style={styles.pinBtn}
             accessibilityRole="button"
             accessibilityLabel={farm.pinned ? 'Unpin farm' : 'Pin farm'}

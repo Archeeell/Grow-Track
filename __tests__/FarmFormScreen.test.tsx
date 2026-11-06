@@ -21,7 +21,7 @@ describe('FarmFormScreen', () => {
   });
 
   it('renders without crashing', () => {
-    const { getByPlaceholderText } = render(<FarmFormScreen onBack={() => {}} />);
+    const { getByPlaceholderText } = render(<FarmFormScreen visible={true} onBack={() => {}} />);
     expect(getByPlaceholderText('e.g. ARCHELLGT')).toBeTruthy();
   });
 
@@ -52,7 +52,7 @@ describe('FarmFormScreen', () => {
       deleteFarm: jest.fn(),
     });
 
-    const { getByPlaceholderText } = render(<FarmFormScreen farmId="farm-1" onBack={() => {}} />);
+    const { getByPlaceholderText } = render(<FarmFormScreen visible={true} farmId="farm-1" onBack={() => {}} />);
     expect(getByPlaceholderText('e.g. ARCHELLGT').props.value).toBe('TEST FARM');
   });
 });

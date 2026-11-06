@@ -14,10 +14,11 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "../auth/AuthContext";
 import { FarmCard } from "../components/FarmCard";
 import { GridFarmCard } from "../components/GridFarmCard";
+import { FarmDetailSheet } from "../components/FarmDetailSheet";
 import { TabBar } from "../components/TabBar";
 import {
   CheckCheckIcon,
@@ -63,6 +64,8 @@ type Props = {
   onAddFarm: () => void;
   onOpenSeeds: () => void;
   onEditFarm: (id: string) => void;
+  onReplantFarm?: (id: string) => void;
+  onSwapFarm?: (id: string) => void;
   onNavigate: (route: Route) => void;
 };
 
@@ -655,7 +658,12 @@ const useStyles = makeStyles(({ colors }) => ({
     padding: spacing.lg,
     gap: spacing.sm,
     borderTopWidth: 1,
+    borderLeftWidth: 1,
+    borderRightWidth: 1,
+    borderBottomWidth: 0,
     borderColor: colors.border,
+    maxHeight: "90%",
+    width: "100%",
   },
   handle: {
     width: 36,
@@ -934,15 +942,26 @@ const useStyles = makeStyles(({ colors }) => ({
   },
 }));
 
+function useSafeInsets() {
+  try {
+    return useSafeAreaInsets();
+  } catch {
+    return { top: 0, bottom: 0, left: 0, right: 0 };
+  }
+}
+
 export function DashboardScreen({
   onAddFarm,
   onOpenSeeds,
   onEditFarm,
+  onReplantFarm,
+  onSwapFarm,
   onNavigate,
 }: Props) {
   const styles = useStyles();
   const { colors } = useTheme();
   const { authState } = useAuth();
+  const insets = useSafeInsets();
 
   const statusColors: Record<HarvestStatus, string> = {
     ready: colors.primary,
@@ -965,6 +984,7 @@ export function DashboardScreen({
   const isGuest = !account || account.mode === 'guest';
 
   const [modal, setModal] = useState<ActionModal | null>(null);
+  const [detailFarmId, setDetailFarmId] = useState<string | null>(null);
   const [filterStatus, setFilterStatus] = useState<FilterStatus>("all");
   const [filterDropdownOpen, setFilterDropdownOpen] = useState(false);
   const [sortMode, setSortMode] = useState<FarmSort>("Recommended");
@@ -1161,6 +1181,10 @@ export function DashboardScreen({
   };
 
   const openSwap = (farm: Farm) => {
+    if (onSwapFarm) {
+      onSwapFarm(farm.id);
+      return;
+    }
     const seed = farm.seedId
       ? seeds.find((s) => s.id === farm.seedId)
       : undefined;
@@ -1178,6 +1202,10 @@ export function DashboardScreen({
   };
 
   const openReplant = (farm: Farm) => {
+    if (onReplantFarm) {
+      onReplantFarm(farm.id);
+      return;
+    }
     const seed = farm.seedId
       ? seeds.find((s) => s.id === farm.seedId)
       : undefined;
@@ -1188,6 +1216,9 @@ export function DashboardScreen({
     setModalHours(dhm.hours > 0 ? String(dhm.hours) : "");
     setModalMinutes(dhm.minutes > 0 ? String(dhm.minutes) : "");
     setModalError(null);
+    setModalSeedId(farm.seedId);
+    setModalNotify(farm.notificationsEnabled);
+    setModalSeedSearch("");
     setModal({ type: "replant", farm, seed });
   };
 
@@ -1220,7 +1251,7 @@ export function DashboardScreen({
     if (modal.type === "swap") {
       await swapFarm(modal.farm.id, trimmedName, totalModalMinutes, modalSeedId ?? undefined, modalNotify);
     } else {
-      await replantFarm(modal.farm.id, trimmedName, totalModalMinutes);
+      await replantFarm(modal.farm.id, trimmedName, totalModalMinutes, modalSeedId ?? undefined, modalNotify);
     }
   };
 
@@ -1286,7 +1317,7 @@ export function DashboardScreen({
         farm={item.farm}
         now={now}
         status={item.status}
-        onPress={() => onEditFarm(item.farm.id)}
+        onDetail={() => setDetailFarmId(item.farm.id)}
         onReset={() => confirmReset(item.farm)}
         onSwap={() => openSwap(item.farm)}
         onHarvested={() => confirmHarvest(item.farm)}
@@ -1739,7 +1770,7 @@ export function DashboardScreen({
                 farm={item}
                 status={s}
                 now={now}
-                onPress={() => onEditFarm(item.id)}
+                onDetail={() => setDetailFarmId(item.id)}
                 onPin={() => togglePin(item)}
               />
             );
@@ -1829,22 +1860,71 @@ export function DashboardScreen({
       {/* ── Bottom Tab Bar ───────────────────────────────────────────────── */}
       <TabBar active="dashboard" onNavigate={onNavigate} />
 
+      {/* ── Farm Detail Sheet ────────────────────────────────────────────── */}
+      {(() => {
+        const detailFarm = detailFarmId ? farms.find((f) => f.id === detailFarmId) ?? null : null;
+        const detailStatus = detailFarm ? getStatus(detailFarm.readyAt, now, detailFarm.harvestedAt) : 'growing';
+        return (
+          <FarmDetailSheet
+            visible={detailFarmId !== null}
+            farm={detailFarm}
+            status={detailStatus}
+            now={now}
+            onClose={() => setDetailFarmId(null)}
+            onEdit={() => {
+              setDetailFarmId(null);
+              if (detailFarmId) onEditFarm(detailFarmId);
+            }}
+            onReset={() => {
+              if (detailFarm) {
+                setDetailFarmId(null);
+                confirmReset(detailFarm);
+              }
+            }}
+            onHarvest={() => {
+              if (detailFarm) {
+                setDetailFarmId(null);
+                void harvestFarm(detailFarm.id);
+              }
+            }}
+            onSwap={() => {
+              if (detailFarm) {
+                setDetailFarmId(null);
+                openSwap(detailFarm);
+              }
+            }}
+            onReplant={() => {
+              if (detailFarm) {
+                setDetailFarmId(null);
+                openReplant(detailFarm);
+              }
+            }}
+            onPin={() => {
+              if (detailFarm) togglePin(detailFarm);
+            }}
+          />
+        );
+      })()}
+
       {/* ── Swap / Replant Modal ─────────────────────────────────────────── */}
       <Modal
         visible={modal !== null}
         transparent
         animationType="slide"
         onRequestClose={closeModal}
+        statusBarTranslucent
       >
         <KeyboardAvoidingView
           style={styles.overlay}
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
         >
           <Pressable style={StyleSheet.absoluteFill} onPress={closeModal} />
-          <Pressable onPress={(e) => e.stopPropagation()}>
-            <View style={styles.sheet}>
-              {/* Drag handle */}
-              <View style={styles.handle} />
+          <Pressable
+            style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 24) + 8 }]}
+            onPress={(e) => e.stopPropagation()}
+          >
+            {/* Drag handle */}
+            <View style={styles.handle} />
               {modal && (
                 <>
                   <View style={styles.sheetHeader}>
@@ -1856,12 +1936,12 @@ export function DashboardScreen({
                     </Pressable>
                   </View>
 
-                  {modal.type === "swap" ? (
-                    <ScrollView
-                      showsVerticalScrollIndicator={false}
-                      keyboardShouldPersistTaps="handled"
-                    >
-                      {/* Current seed info card */}
+                  <ScrollView
+                    showsVerticalScrollIndicator={false}
+                    keyboardShouldPersistTaps="handled"
+                  >
+                    {modal.type === "swap" ? (
+                      /* Current seed info card (swap only) */
                       <View style={[styles.currentInfoCard, { marginBottom: spacing.sm }]}>
                         <Text style={styles.currentInfoLabel}>
                           Current · {modal.farm.seedName || "Unknown"}
@@ -1870,8 +1950,9 @@ export function DashboardScreen({
                           Ready to harvest
                         </Text>
                       </View>
+                    ) : null}
 
-                      {/* World name */}
+                    {/* World name */}
                       <Text style={[styles.fieldLabel, { marginBottom: 4 }]}>World name</Text>
                       <TextInput
                         style={[styles.input, { marginBottom: spacing.sm }]}
@@ -2019,110 +2100,18 @@ export function DashboardScreen({
                         <Text style={[styles.modalError, { marginBottom: 4 }]}>{modalError}</Text>
                       ) : null}
 
-                      {/* Full-width Swap button */}
+                      {/* Full-width action button */}
                       <Pressable
                         style={[styles.sheetBtn, styles.sheetBtnPrimary, { width: "100%" }]}
                         onPress={() => void confirmModal()}
                       >
-                        <Text style={styles.sheetBtnPrimaryText}>Swap</Text>
+                        <Text style={styles.sheetBtnPrimaryText}>
+                          {modal.type === "swap" ? "Swap" : "Replant"}
+                        </Text>
                       </Pressable>
                     </ScrollView>
-                  ) : (
-                    /* ── Replant mode (unchanged) ── */
-                    <>
-                      {/* Seed type */}
-                      <View style={styles.seedPill}>
-                        <Text style={styles.seedPillLabel}>Seed type</Text>
-                        <Text style={styles.seedPillValue}>
-                          {modal.seed?.name ?? "Custom / manual"}
-                        </Text>
-                      </View>
-
-                      <Text style={styles.sheetHint}>
-                        Confirm the farm name and adjust the grow time if needed.
-                      </Text>
-
-                      {/* Farm name */}
-                      <Text style={styles.fieldLabel}>Farm name</Text>
-                      <TextInput
-                        style={styles.input}
-                        value={modalName}
-                        onChangeText={(v) => {
-                          setModalName(v);
-                          setModalError(null);
-                        }}
-                        placeholder={modal.farm.name}
-                        placeholderTextColor={colors.mutedForeground}
-                      />
-
-                      {/* Grow duration */}
-                      <Text style={styles.fieldLabel}>Grow duration</Text>
-                      <View style={styles.dhmRow}>
-                        {[
-                          { label: "Days", value: modalDays, set: setModalDays },
-                          { label: "Hours", value: modalHours, set: setModalHours },
-                          { label: "Minutes", value: modalMinutes, set: setModalMinutes },
-                        ].map(({ label, value, set }) => (
-                          <View key={label} style={styles.dhmCell}>
-                            <Text style={styles.dhmLabel}>{label}</Text>
-                            <TextInput
-                              style={styles.input}
-                              value={value}
-                              onChangeText={(v) => {
-                                set(v);
-                                setModalError(null);
-                              }}
-                              keyboardType="numeric"
-                              placeholder="0"
-                              placeholderTextColor={colors.mutedForeground}
-                            />
-                          </View>
-                        ))}
-                      </View>
-
-                      {modalPreviewReady ? (
-                        <View style={styles.previewCard}>
-                          <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-                            <Clock3Icon size={12} color={colors.accentBlue} />
-                            <Text style={styles.previewLabel}>ESTIMATED HARVEST</Text>
-                          </View>
-                          <Text style={styles.previewTime}>
-                            {new Date(modalPreviewReady).toLocaleString(undefined, {
-                              month: "short",
-                              day: "numeric",
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })}
-                          </Text>
-                          {modal.seed && (
-                            <Text style={styles.previewSeed}>{modal.seed.name}</Text>
-                          )}
-                        </View>
-                      ) : null}
-
-                      {modalError ? (
-                        <Text style={styles.modalError}>{modalError}</Text>
-                      ) : null}
-
-                      <View style={styles.sheetActions}>
-                        <Pressable
-                          style={[styles.sheetBtn, styles.sheetBtnSecondary]}
-                          onPress={closeModal}
-                        >
-                          <Text style={styles.sheetBtnSecondaryText}>Cancel</Text>
-                        </Pressable>
-                        <Pressable
-                          style={[styles.sheetBtn, styles.sheetBtnPrimary]}
-                          onPress={() => void confirmModal()}
-                        >
-                          <Text style={styles.sheetBtnPrimaryText}>Replant</Text>
-                        </Pressable>
-                      </View>
-                    </>
-                  )}
                 </>
               )}
-            </View>
           </Pressable>
         </KeyboardAvoidingView>
       </Modal>

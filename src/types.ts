@@ -34,7 +34,7 @@ export type AppData = {
 
 export type Route =
   | { name: "dashboard" }
-  | { name: "farm-form"; farmId?: string }
+  | { name: "farm-form"; farmId?: string; mode?: "add" | "edit" | "swap" | "replant" }
   | { name: "seeds" }
   | { name: "seed-form"; seedId?: string }
   | { name: "settings" };

@@ -28,7 +28,13 @@ type Store = {
   resetFarm: (id: string) => Promise<void>;
   harvestFarm: (id: string) => Promise<void>;
   swapFarm: (id: string, newName: string, growMinutes: number, newSeedId?: string, notifyEnabled?: boolean) => Promise<void>;
-  replantFarm: (id: string, newName: string, growMinutes: number) => Promise<void>;
+  replantFarm: (
+    id: string,
+    newName: string,
+    growMinutes: number,
+    newSeedId?: string,
+    notifyEnabled?: boolean
+  ) => Promise<void>;
   addSeed: (seed: Omit<Seed, 'id' | 'builtIn'>) => Promise<Seed>;
   updateSeed: (id: string, patch: Partial<Seed>) => Promise<void>;
   deleteSeed: (id: string) => Promise<void>;
@@ -191,16 +197,22 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   /** Reset a harvested farm after replanting, using a new name and grow time. */
   const replantFarm: Store['replantFarm'] = useCallback(
-    async (id, newName, growMinutes) => {
+    async (id, newName, growMinutes, newSeedId, notifyEnabled) => {
       const farm = farms.find((f) => f.id === id);
       if (!farm) return;
+      await cancelFarmNotification(farm);
       const plantedAt = new Date().toISOString();
+      const resolvedSeedId = newSeedId ?? farm.seedId;
+      const resolvedSeed = resolvedSeedId ? seeds.find((s) => s.id === resolvedSeedId) : undefined;
       const nextFarm: Farm = {
         ...farm,
         name: newName,
+        seedId: resolvedSeedId,
+        seedName: resolvedSeed?.name ?? farm.seedName,
         plantedAt,
         readyAt: addMinutes(plantedAt, growMinutes),
         manualOverride: true,
+        notificationsEnabled: notifyEnabled !== undefined ? notifyEnabled : farm.notificationsEnabled,
         lastNotifiedReadyAt: null,
         harvestedAt: null,
       };

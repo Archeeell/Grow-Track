@@ -30,15 +30,6 @@ function Root() {
     return <View style={{ flex: 1, backgroundColor: colors.bg }} />;
   }
 
-  if (route.name === 'farm-form') {
-    return (
-      <FarmFormScreen
-        farmId={route.farmId}
-        onBack={() => setRoute({ name: 'dashboard' })}
-      />
-    );
-  }
-
   if (route.name === 'seeds') {
     return (
       <SeedManagerScreen
@@ -52,13 +43,25 @@ function Root() {
     return <SettingsScreen onNavigate={navigate} />;
   }
 
+  const farmFormRoute = route.name === 'farm-form' ? route : null;
+
   return (
-    <DashboardScreen
-      onAddFarm={() => setRoute({ name: 'farm-form' })}
-      onOpenSeeds={() => setRoute({ name: 'seeds' })}
-      onEditFarm={(farmId) => setRoute({ name: 'farm-form', farmId })}
-      onNavigate={navigate}
-    />
+    <>
+      <DashboardScreen
+        onAddFarm={() => setRoute({ name: 'farm-form', mode: 'add' })}
+        onOpenSeeds={() => setRoute({ name: 'seeds' })}
+        onEditFarm={(farmId) => setRoute({ name: 'farm-form', farmId, mode: 'edit' })}
+        onReplantFarm={(farmId) => setRoute({ name: 'farm-form', farmId, mode: 'replant' })}
+        onSwapFarm={(farmId) => setRoute({ name: 'farm-form', farmId, mode: 'swap' })}
+        onNavigate={navigate}
+      />
+      <FarmFormScreen
+        visible={farmFormRoute !== null}
+        farmId={farmFormRoute?.farmId}
+        mode={farmFormRoute?.mode}
+        onBack={() => setRoute({ name: 'dashboard' })}
+      />
+    </>
   );
 }
 

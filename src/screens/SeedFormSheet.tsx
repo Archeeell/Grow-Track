@@ -7,6 +7,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useStore } from '../store';
 import { fonts, radius, spacing } from '../theme';
 import { useTheme } from '../theme/ThemeContext';
@@ -29,10 +30,16 @@ const useStyles = makeStyles(({ colors }) => ({
     justifyContent: 'flex-end',
   },
   sheet: {
+    width: '100%',
     backgroundColor: colors.card,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
-    maxHeight: '75%',
+    borderTopWidth: 1,
+    borderLeftWidth: 1,
+    borderRightWidth: 1,
+    borderBottomWidth: 0,
+    borderColor: colors.border,
+    maxHeight: '90%',
   },
   handle: {
     width: 40,
@@ -191,9 +198,18 @@ const useStyles = makeStyles(({ colors }) => ({
   },
 }));
 
+function useSafeInsets() {
+  try {
+    return useSafeAreaInsets();
+  } catch {
+    return { top: 0, bottom: 0, left: 0, right: 0 };
+  }
+}
+
 export function SeedFormSheet({ visible, seedId, onClose }: Props) {
   const styles = useStyles();
   const { colors } = useTheme();
+  const insets = useSafeInsets();
   const { seeds, addSeed, updateSeed, deleteSeed } = useStore();
   const existing = seedId ? seeds.find((s) => s.id === seedId) : undefined;
   const [name, setName] = useState('');
@@ -294,7 +310,10 @@ export function SeedFormSheet({ visible, seedId, onClose }: Props) {
           </View>
 
           <ScrollView
-            contentContainerStyle={styles.scroll}
+            contentContainerStyle={[
+              styles.scroll,
+              { paddingBottom: Math.max(insets.bottom, 24) + 20 },
+            ]}
             keyboardShouldPersistTaps="handled"
           >
             <View style={styles.fieldWrap}>

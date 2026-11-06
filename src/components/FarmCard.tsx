@@ -23,7 +23,8 @@ type Props = {
   farm: Farm;
   status: HarvestStatus;
   now: number;
-  onPress: () => void;
+  /** Opens the Farm Details bottom sheet */
+  onDetail: () => void;
   onReset: () => void;
   onSwap: () => void;
   onHarvested: () => void;
@@ -265,7 +266,7 @@ export function FarmCard({
   farm,
   status,
   now,
-  onPress,
+  onDetail,
   onSwap,
   onHarvested,
   onReplanted,
@@ -297,10 +298,19 @@ export function FarmCard({
   const emoji = getSeedIcon(farm.seedId);
 
   return (
-    <View style={[styles.card, isReady && styles.cardReady]}>
+    <Pressable
+      style={({ pressed }) => [
+        styles.card,
+        isReady && styles.cardReady,
+        pressed && { opacity: 0.95 },
+      ]}
+      onPress={onDetail}
+      accessibilityRole="button"
+      accessibilityLabel={`${farm.name || 'Farm'}, ${status}. Open farm details`}
+    >
       {/* Top row: icon + name + pin */}
       <View style={styles.topRow}>
-        <Pressable accessibilityRole="button" onPress={onPress} style={styles.topRowPressable}>
+        <View style={styles.topRowPressable}>
           <View style={styles.iconBox}>
             {itemImage ? (
               <Image source={itemImage} style={styles.itemImage} resizeMode="contain" />
@@ -313,10 +323,13 @@ export function FarmCard({
             <Text style={styles.name} numberOfLines={1}>{farm.name}</Text>
             <Text style={styles.seedName} numberOfLines={1}>{farm.seedName}</Text>
           </View>
-        </Pressable>
+        </View>
 
         <Pressable
-          onPress={onPin}
+          onPress={(e) => {
+            e.stopPropagation?.();
+            onPin?.();
+          }}
           style={styles.pinBtn}
           accessibilityRole="button"
           accessibilityLabel={farm.pinned ? 'Unpin farm' : 'Pin farm'}
@@ -374,7 +387,10 @@ export function FarmCard({
             </Text>
             <Pressable
               style={styles.ellipsisBtn}
-              onPress={onPress}
+              onPress={(e) => {
+                e.stopPropagation?.();
+                onDetail();
+              }}
               accessibilityRole="button"
               accessibilityLabel="More actions"
             >
@@ -414,7 +430,10 @@ export function FarmCard({
             {isReady && (
               <Pressable
                 style={styles.swapBtn}
-                onPress={onSwap}
+                onPress={(e) => {
+                  e.stopPropagation?.();
+                  onSwap();
+                }}
                 accessibilityRole="button"
                 accessibilityLabel="Swap seed"
               >
@@ -426,7 +445,11 @@ export function FarmCard({
                 styles.actionBtn,
                 isReady ? styles.actionBtnPrimary : styles.actionBtnSecondary,
               ]}
-              onPress={isReady ? onHarvested : onReplanted}
+              onPress={(e) => {
+                e.stopPropagation?.();
+                if (isReady) onHarvested();
+                else onReplanted();
+              }}
               accessibilityRole="button"
             >
               <Text style={isReady ? styles.actionBtnPrimaryText : styles.actionBtnSecondaryText}>
@@ -436,7 +459,7 @@ export function FarmCard({
           </View>
         </View>
       )}
-    </View>
+    </Pressable>
   );
 }
 
