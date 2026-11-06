@@ -46,7 +46,9 @@ import { makeStyles } from "../theme/makeStyles";
 import { withAlpha } from "../theme/withAlpha";
 import type { Farm, HarvestStatus, Route, Seed } from "../types";
 import { getSeedIcon, getSeedSeedImage } from "../data/seedIcons";
+import { GuestLimitSheet } from "../components/GuestLimitSheet";
 import { confirmAction } from "../utils/confirm";
+import { type AuthPage } from "./AuthScreen";
 import {
   addMinutes,
   getStatus,
@@ -60,6 +62,8 @@ const rank: Record<HarvestStatus, number> = {
   growing: 2,
 };
 
+const GUEST_FARM_LIMIT = 5;
+
 type Props = {
   onAddFarm: () => void;
   onOpenSeeds: () => void;
@@ -67,6 +71,8 @@ type Props = {
   onReplantFarm?: (id: string) => void;
   onSwapFarm?: (id: string) => void;
   onNavigate: (route: Route) => void;
+  /** Called when guest taps "Create Account" or "Sign In" in the limit sheet */
+  onNavigateToAuth?: (page: AuthPage) => void;
 };
 
 // ─── Swap / Replant modal state ───────────────────────────────────────────────
@@ -957,6 +963,7 @@ export function DashboardScreen({
   onReplantFarm,
   onSwapFarm,
   onNavigate,
+  onNavigateToAuth,
 }: Props) {
   const styles = useStyles();
   const { colors } = useTheme();
@@ -992,6 +999,7 @@ export function DashboardScreen({
   const [viewMode, setViewMode] = useState<FarmView>("list");
   const [showSearch, setShowSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [showGuestLimit, setShowGuestLimit] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -1020,6 +1028,15 @@ export function DashboardScreen({
     AsyncStorage.setItem("growtrack-farm-view", JSON.stringify(mode)).catch(
       () => {},
     );
+  };
+
+  /** Intercept Add Farm: show limit sheet if guest already has max farms */
+  const handleAddFarm = () => {
+    if (isGuest && farms.length >= GUEST_FARM_LIMIT) {
+      setShowGuestLimit(true);
+      return;
+    }
+    onAddFarm();
   };
 
   const filterLabel = useMemo(() => {
@@ -1667,7 +1684,7 @@ export function DashboardScreen({
 
         <Pressable
           style={[styles.iconBtn, styles.addBtn]}
-          onPress={onAddFarm}
+          onPress={handleAddFarm}
           accessibilityRole="button"
           accessibilityLabel="Add farm"
         >
@@ -1726,47 +1743,47 @@ export function DashboardScreen({
                 <Text style={styles.emptyBody}>
                   Add your first farm and start tracking its harvest time.
                 </Text>
-                <Pressable style={styles.emptyBtn} onPress={onAddFarm}>
-                  <PlusIcon size={14} color={colors.primaryForeground} />
-                  <Text style={styles.emptyBtnText}>Add your first farm</Text>
-                </Pressable>
-                <View style={styles.emptyHint}>
-                  <ShieldCheckIcon size={12} color={colors.mutedForeground} />
-                  <Text style={styles.emptyHintText}>
-                    Your timers keep growing, even when you're away.
-                  </Text>
-                </View>
-              </View>
-            ) : (
-              <View style={styles.emptyFilter}>
-                <Text style={styles.emptyFilterTitle}>
-                  {searchQuery.trim()
-                    ? "No matching farms"
-                    : `No ${filterStatus === "all" ? "" : filterStatus} farms`}
-                </Text>
-                <Text style={styles.emptyFilterBody}>
-                  {searchQuery.trim()
-                    ? `No farms matched "${searchQuery.trim()}"`
-                    : "Try changing your filter to see more farms."}
-                </Text>
-                <Pressable
-                  style={styles.emptyFilterBtn}
-                  onPress={() => {
-                    if (searchQuery.trim()) setSearchQuery("");
-                    else setFilterStatus("all");
-                  }}
-                >
-                  <Text style={styles.emptyFilterBtnText}>
-                    {searchQuery.trim() ? "Clear search" : "Show all farms"}
-                  </Text>
-                </Pressable>
-              </View>
-            )
-          }
-          renderItem={({ item }) => {
-            const s = getStatus(item.readyAt, now, item.harvestedAt);
-            return (
-              <GridFarmCard
+                <Pressable style={styles.emptyBtn} onPress={handleAddFarm}>
+                          <PlusIcon size={14} color={colors.primaryForeground} />
+                          <Text style={styles.emptyBtnText}>Add your first farm</Text>
+                        </Pressable>
+                        <View style={styles.emptyHint}>
+                          <ShieldCheckIcon size={12} color={colors.mutedForeground} />
+                          <Text style={styles.emptyHintText}>
+                            Your timers keep growing, even when you're away.
+                          </Text>
+                        </View>
+                      </View>
+                    ) : (
+                      <View style={styles.emptyFilter}>
+                        <Text style={styles.emptyFilterTitle}>
+                          {searchQuery.trim()
+                            ? "No matching farms"
+                            : `No ${filterStatus === "all" ? "" : filterStatus} farms`}
+                        </Text>
+                        <Text style={styles.emptyFilterBody}>
+                          {searchQuery.trim()
+                            ? `No farms matched "${searchQuery.trim()}"`
+                            : "Try changing your filter to see more farms."}
+                        </Text>
+                        <Pressable
+                          style={styles.emptyFilterBtn}
+                          onPress={() => {
+                            if (searchQuery.trim()) setSearchQuery("");
+                            else setFilterStatus("all");
+                          }}
+                        >
+                          <Text style={styles.emptyFilterBtnText}>
+                            {searchQuery.trim() ? "Clear search" : "Show all farms"}
+                          </Text>
+                        </Pressable>
+                      </View>
+                    )
+                  }
+                  renderItem={({ item }) => {
+                    const s = getStatus(item.readyAt, now, item.harvestedAt);
+                    return (
+                      <GridFarmCard
                 farm={item}
                 status={s}
                 now={now}
@@ -1806,7 +1823,7 @@ export function DashboardScreen({
                 <Text style={styles.emptyBody}>
                   Add your first farm and start tracking its harvest time.
                 </Text>
-                <Pressable style={styles.emptyBtn} onPress={onAddFarm}>
+                <Pressable style={styles.emptyBtn} onPress={handleAddFarm}>
                   <PlusIcon size={14} color={colors.primaryForeground} />
                   <Text style={styles.emptyBtnText}>Add your first farm</Text>
                 </Pressable>
@@ -2115,6 +2132,21 @@ export function DashboardScreen({
           </Pressable>
         </KeyboardAvoidingView>
       </Modal>
+
+      {/* ── Guest Farm Limit Sheet ───────────────────────────────────────── */}
+      <GuestLimitSheet
+        visible={showGuestLimit}
+        farmCount={farms.length}
+        onClose={() => setShowGuestLimit(false)}
+        onCreateAccount={() => {
+          setShowGuestLimit(false);
+          onNavigateToAuth?.('signup');
+        }}
+        onSignIn={() => {
+          setShowGuestLimit(false);
+          onNavigateToAuth?.('login');
+        }}
+      />
     </SafeAreaView>
   );
 }

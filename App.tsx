@@ -18,7 +18,7 @@ import type { Route } from './src/types';
 // Prevent the native splash from auto-hiding before fonts are ready.
 ExpoSplashScreen.preventAutoHideAsync();
 
-function Root() {
+function Root({ onNavigateToAuth }: { onNavigateToAuth: (page: AuthPage) => void }) {
   const { ready } = useStore();
   const { colors } = useTheme();
   const [route, setRoute] = useState<Route>({ name: 'dashboard' });
@@ -54,6 +54,7 @@ function Root() {
         onReplantFarm={(farmId) => setRoute({ name: 'farm-form', farmId, mode: 'replant' })}
         onSwapFarm={(farmId) => setRoute({ name: 'farm-form', farmId, mode: 'swap' })}
         onNavigate={navigate}
+        onNavigateToAuth={onNavigateToAuth}
       />
       <FarmFormScreen
         visible={farmFormRoute !== null}
@@ -67,7 +68,7 @@ function Root() {
 
 // ─── AppGate: reads auth state, shows Login or Root ──────────────────────────
 function AppGate() {
-  const { authState } = useAuth();
+  const { authState, signOut } = useAuth();
   const { scheme, colors } = useTheme();
   const [authPage, setAuthPage] = useState<AuthPage>('login');
   const statusBarStyle = scheme === 'dark' ? 'light' : 'dark';
@@ -97,7 +98,12 @@ function AppGate() {
     <SafeAreaProvider>
       <StoreProvider>
         <StatusBar style={statusBarStyle} />
-        <Root />
+        <Root
+          onNavigateToAuth={(page) => {
+            setAuthPage(page);
+            signOut();
+          }}
+        />
       </StoreProvider>
     </SafeAreaProvider>
   );
