@@ -1047,6 +1047,36 @@ export function DashboardScreen({
   const [searchQuery, setSearchQuery] = useState("");
   const [showGuestLimit, setShowGuestLimit] = useState(false);
 
+  // Pinned button animation
+  const pinnedAnim = useRef(new Animated.Value(0)).current;
+  const pinnedScale = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    Animated.timing(pinnedAnim, {
+      toValue: filterStatus === "pinned" ? 1 : 0,
+      duration: 180,
+      easing: _easeOut,
+      useNativeDriver: false,
+    }).start();
+  }, [filterStatus, pinnedAnim]);
+
+  const onPinnedPressIn = () => {
+    Animated.spring(pinnedScale, {
+      toValue: 0.92,
+      useNativeDriver: true,
+      speed: 50,
+      bounciness: 0,
+    }).start();
+  };
+  const onPinnedPressOut = () => {
+    Animated.spring(pinnedScale, {
+      toValue: 1,
+      useNativeDriver: true,
+      speed: 30,
+      bounciness: 4,
+    }).start();
+  };
+
   useEffect(() => {
     let mounted = true;
     (async () => {
@@ -1576,35 +1606,45 @@ export function DashboardScreen({
           </View>
 
           {/* Pinned Button */}
-          <Pressable
-            style={[
-              styles.pinnedBtn,
-              filterStatus === "pinned" && styles.pinnedBtnActive,
-            ]}
-            onPress={() =>
-              setFilterStatus((p) => (p === "pinned" ? "all" : "pinned"))
-            }
-            accessibilityRole="button"
-            accessibilityLabel="Filter pinned farms"
+          <Animated.View
+            style={{
+              borderRadius: 8,
+              transform: [{ scale: pinnedScale }],
+              backgroundColor: pinnedAnim.interpolate({
+                inputRange: [0, 1],
+                outputRange: ['transparent', colors.secondary],
+              }),
+            }}
           >
-            <StarIcon
-              size={12}
-              color={
-                filterStatus === "pinned"
-                  ? colors.foreground
-                  : colors.mutedForeground
+            <Pressable
+              style={styles.pinnedBtn}
+              onPress={() =>
+                setFilterStatus((p) => (p === "pinned" ? "all" : "pinned"))
               }
-              fill={filterStatus === "pinned" ? colors.foreground : "none"}
-            />
-            <Text
-              style={[
-                styles.pinnedBtnText,
-                filterStatus === "pinned" && styles.pinnedBtnTextActive,
-              ]}
+              onPressIn={onPinnedPressIn}
+              onPressOut={onPinnedPressOut}
+              accessibilityRole="button"
+              accessibilityLabel="Filter pinned farms"
             >
-              Pinned
-            </Text>
-          </Pressable>
+              <StarIcon
+                size={12}
+                color={
+                  filterStatus === "pinned"
+                    ? colors.foreground
+                    : colors.mutedForeground
+                }
+                fill={filterStatus === "pinned" ? colors.foreground : "none"}
+              />
+              <Text
+                style={[
+                  styles.pinnedBtnText,
+                  filterStatus === "pinned" && styles.pinnedBtnTextActive,
+                ]}
+              >
+                Pinned
+              </Text>
+            </Pressable>
+          </Animated.View>
         </View>
 
         <View style={styles.toolbarRight}>
