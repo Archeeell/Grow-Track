@@ -1,6 +1,8 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
+  Animated,
+  Easing,
   FlatList,
   Image,
   KeyboardAvoidingView,
@@ -55,6 +57,50 @@ import {
   minutesToDHM,
   parseNonNegInt,
 } from "../utils/time";
+
+const _easeOut = Easing.out(Easing.ease);
+
+/** Dropdown dengan animasi opacity + translateY identik dengan Settings enter-anim. */
+function AnimatedDropdown({
+  open,
+  style,
+  children,
+}: {
+  open: boolean;
+  style: object;
+  children: React.ReactNode;
+}) {
+  const opacity = useRef(new Animated.Value(0)).current;
+  const translateY = useRef(new Animated.Value(-6)).current;
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    if (open) {
+      setMounted(true);
+      opacity.setValue(0);
+      translateY.setValue(-6);
+      Animated.parallel([
+        Animated.timing(opacity, { toValue: 1, duration: 200, easing: _easeOut, useNativeDriver: true }),
+        Animated.timing(translateY, { toValue: 0, duration: 200, easing: _easeOut, useNativeDriver: true }),
+      ]).start();
+    } else {
+      Animated.parallel([
+        Animated.timing(opacity, { toValue: 0, duration: 130, easing: _easeOut, useNativeDriver: true }),
+        Animated.timing(translateY, { toValue: -6, duration: 130, easing: _easeOut, useNativeDriver: true }),
+      ]).start(({ finished }) => {
+        if (finished) setMounted(false);
+      });
+    }
+  }, [open, opacity, translateY]);
+
+  if (!mounted) return null;
+
+  return (
+    <Animated.View style={[style, { opacity, transform: [{ translateY }] }]}>
+      {children}
+    </Animated.View>
+  );
+}
 
 const rank: Record<HarvestStatus, number> = {
   ready: 0,
@@ -1493,8 +1539,7 @@ export function DashboardScreen({
             </Pressable>
 
             {/* Dropdown Menu */}
-            {filterDropdownOpen && (
-              <View style={styles.dropdownMenu}>
+            <AnimatedDropdown open={filterDropdownOpen} style={styles.dropdownMenu}>
                 <Text style={styles.dropdownHeader}>SHOW FARMS</Text>
                 {FILTER_OPTIONS.map((option) => {
                   const isSelected = filterStatus === option.id;
@@ -1527,8 +1572,7 @@ export function DashboardScreen({
                     </Pressable>
                   );
                 })}
-              </View>
-            )}
+            </AnimatedDropdown>
           </View>
 
           {/* Pinned Button */}
@@ -1641,8 +1685,7 @@ export function DashboardScreen({
             <ChevronDownIcon size={12} color={colors.mutedForeground} />
           </Pressable>
 
-          {sortDropdownOpen && (
-            <View style={styles.sortMenu}>
+          <AnimatedDropdown open={sortDropdownOpen} style={styles.sortMenu}>
               <ScrollView
                 showsVerticalScrollIndicator={false}
                 keyboardShouldPersistTaps="handled"
@@ -1680,8 +1723,7 @@ export function DashboardScreen({
                   );
                 })}
               </ScrollView>
-            </View>
-          )}
+          </AnimatedDropdown>
         </View>
 
         <Pressable
