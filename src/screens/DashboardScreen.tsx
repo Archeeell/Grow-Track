@@ -1451,7 +1451,9 @@ export function DashboardScreen({
               {totalFarms} / 5 farms
             </Text>
           </Text>
-          <Text style={styles.guestUsageText}>Saved on this device</Text>
+          <Text style={[styles.guestUsageText, totalFarms >= GUEST_FARM_LIMIT && { color: colors.growing }]}>
+            {totalFarms >= GUEST_FARM_LIMIT ? 'Guest limit reached' : 'Saved on this device'}
+          </Text>
         </View>
       )}
 
