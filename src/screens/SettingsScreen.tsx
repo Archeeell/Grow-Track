@@ -381,7 +381,7 @@ export function SettingsScreen({ onNavigate }: Props) {
       <View style={styles.flex}>
         <ScrollView
           style={styles.flex}
-          contentContainerStyle={[styles.scrollContent, { paddingBottom: 112 + pb }]}
+          contentContainerStyle={[styles.scrollContent, { paddingBottom: 15 + pb }]}
           showsVerticalScrollIndicator={false}
         >
           <Animated.View style={{ opacity: enterOp, transform: [{ translateY: enterTy }] }}>
