@@ -2,7 +2,7 @@ import * as ExpoSplashScreen from 'expo-splash-screen';
 import { useFonts } from 'expo-font';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Animated, Easing, StyleSheet, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider, useAuth } from './src/auth/AuthContext';
 import { AuthScreen, type AuthPage } from './src/screens/AuthScreen';
@@ -18,6 +18,69 @@ import type { Route } from './src/types';
 // Prevent the native splash from auto-hiding before fonts are ready.
 ExpoSplashScreen.preventAutoHideAsync();
 
+// Tab screens that animate in/out — farm-form is a Modal, excluded
+type TabName = 'dashboard' | 'seeds' | 'settings';
+const TAB_NAMES: TabName[] = ['dashboard', 'seeds', 'settings'];
+
+const cssEaseOut = Easing.out(Easing.ease);
+
+/** Fades + slides a screen in when active, fully unmounts it when done. */
+function AnimatedScreen({
+  active,
+  children,
+}: {
+  active: boolean;
+  children: React.ReactNode;
+}) {
+  const opacity = useRef(new Animated.Value(active ? 1 : 0)).current;
+  const translateY = useRef(new Animated.Value(active ? 0 : 8)).current;
+  const [mounted, setMounted] = useState(active);
+
+  useEffect(() => {
+    if (active) {
+      setMounted(true);
+      opacity.setValue(0);
+      translateY.setValue(8);
+      Animated.parallel([
+        Animated.timing(opacity, {
+          toValue: 1,
+          duration: 200,
+          easing: cssEaseOut,
+          useNativeDriver: true,
+        }),
+        Animated.timing(translateY, {
+          toValue: 0,
+          duration: 200,
+          easing: cssEaseOut,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    } else {
+      Animated.timing(opacity, {
+        toValue: 0,
+        duration: 120,
+        useNativeDriver: true,
+      }).start(({ finished }) => {
+        if (finished) {
+          setMounted(false);
+          translateY.setValue(8);
+        }
+      });
+    }
+  }, [active, opacity, translateY]);
+
+  if (!mounted) return null;
+
+  return (
+    <Animated.View
+      style={[StyleSheet.absoluteFill, { opacity, transform: [{ translateY }] }]}
+      pointerEvents={active ? 'auto' : 'none'}
+    >
+      {children}
+    </Animated.View>
+  );
+}
+
 function Root({ onNavigateToAuth }: { onNavigateToAuth: (page: AuthPage) => void }) {
   const { ready } = useStore();
   const { colors } = useTheme();
@@ -30,39 +93,45 @@ function Root({ onNavigateToAuth }: { onNavigateToAuth: (page: AuthPage) => void
     return <View style={{ flex: 1, backgroundColor: colors.bg }} />;
   }
 
-  if (route.name === 'seeds') {
-    return (
-      <SeedManagerScreen
-        onBack={() => setRoute({ name: 'dashboard' })}
-        onNavigate={navigate}
-      />
-    );
-  }
-
-  if (route.name === 'settings') {
-    return <SettingsScreen onNavigate={navigate} />;
-  }
+  const activeTab: TabName = TAB_NAMES.includes(route.name as TabName)
+    ? (route.name as TabName)
+    : 'dashboard';
 
   const farmFormRoute = route.name === 'farm-form' ? route : null;
 
   return (
-    <>
-      <DashboardScreen
-        onAddFarm={() => setRoute({ name: 'farm-form', mode: 'add' })}
-        onOpenSeeds={() => setRoute({ name: 'seeds' })}
-        onEditFarm={(farmId) => setRoute({ name: 'farm-form', farmId, mode: 'edit' })}
-        onReplantFarm={(farmId) => setRoute({ name: 'farm-form', farmId, mode: 'replant' })}
-        onSwapFarm={(farmId) => setRoute({ name: 'farm-form', farmId, mode: 'swap' })}
-        onNavigate={navigate}
-        onNavigateToAuth={onNavigateToAuth}
-      />
+    <View style={{ flex: 1, backgroundColor: colors.bg }}>
+      <AnimatedScreen active={activeTab === 'dashboard'}>
+        <DashboardScreen
+          onAddFarm={() => setRoute({ name: 'farm-form', mode: 'add' })}
+          onOpenSeeds={() => setRoute({ name: 'seeds' })}
+          onEditFarm={(farmId) => setRoute({ name: 'farm-form', farmId, mode: 'edit' })}
+          onReplantFarm={(farmId) => setRoute({ name: 'farm-form', farmId, mode: 'replant' })}
+          onSwapFarm={(farmId) => setRoute({ name: 'farm-form', farmId, mode: 'swap' })}
+          onNavigate={navigate}
+          onNavigateToAuth={onNavigateToAuth}
+        />
+      </AnimatedScreen>
+
+      <AnimatedScreen active={activeTab === 'seeds'}>
+        <SeedManagerScreen
+          onBack={() => setRoute({ name: 'dashboard' })}
+          onNavigate={navigate}
+        />
+      </AnimatedScreen>
+
+      <AnimatedScreen active={activeTab === 'settings'}>
+        <SettingsScreen onNavigate={navigate} />
+      </AnimatedScreen>
+
+      {/* FarmFormScreen is a Modal — always rendered, visible prop controls it */}
       <FarmFormScreen
         visible={farmFormRoute !== null}
         farmId={farmFormRoute?.farmId}
         mode={farmFormRoute?.mode}
         onBack={() => setRoute({ name: 'dashboard' })}
       />
-    </>
+    </View>
   );
 }
 
